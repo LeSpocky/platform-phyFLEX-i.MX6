@@ -1,0 +1,71 @@
+From 9db84c3bfb05babd5ebc0ae8c744c3a738cc2329 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Wed, 21 Aug 2013 13:00:12 +0200
+Subject: [PATCH 10/55] pfla02: add boot source detection
+
+Set env0 and self0 to the bootdevice
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/board.c |   30 ++++++++++++++++++++++++++++++
+ 1 files changed, 30 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index 9eb87d4..5ff5b44 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -17,7 +17,11 @@
+  *
+  */
+ 
++#include <environment.h>
++#include <bootsource.h>
++#include <partition.h>
+ #include <common.h>
++#include <sizes.h>
+ #include <gpio.h>
+ #include <init.h>
+ #include <of.h>
+@@ -82,6 +86,7 @@ extern char flash_header_phytec_pfla02s_512mb_end[];
+ 
+ static int phytec_pfla02_init(void)
+ {
++	char *envdev;
+ 	void *flash_header_start;
+ 	void *flash_header_end;
+ 
+@@ -104,6 +109,31 @@ static int phytec_pfla02_init(void)
+ 	phy_register_fixup_for_uid(PHY_ID_KSZ9031, MICREL_PHY_ID_MASK,
+ 					   ksz9031rn_phy_fixup);
+ 
++	switch (bootsource_get()) {
++	case BOOTSOURCE_NAND:
++		devfs_add_partition("nand0", 0, SZ_512K,
++				DEVFS_PARTITION_FIXED, "self_raw");
++		dev_add_bb_dev("self_raw", "self0");
++		devfs_add_partition("nand0", SZ_512K, SZ_128K,
++				DEVFS_PARTITION_FIXED, "env_raw");
++		dev_add_bb_dev("env_raw", "env0");
++		envdev = "NAND";
++		break;
++        case BOOTSOURCE_MMC:
++		envdev = "MMC";
++                break;
++        default:
++        case BOOTSOURCE_SPI:
++                of_device_enable_path("/chosen/environment");
++                devfs_add_partition("m25p0", 0, SZ_512K, DEVFS_PARTITION_FIXED, "self0");
++                devfs_add_partition("m25p0", SZ_512K, SZ_64K,
++                                    DEVFS_PARTITION_FIXED, "env0");
++		envdev = "SPI-NOR";
++                break;
++        }
++
++	pr_notice("Using environment in %s Flash\n", envdev);
++
+ 	armlinux_set_bootparams((void *)0x10000100);
+ 	armlinux_set_architecture(3529);
+ 
+-- 
+1.7.0.4
+

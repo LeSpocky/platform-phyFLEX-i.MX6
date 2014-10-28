@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ "$1" = menu ]; then
+	boot-menu-add-entry "$0" "network (Kernel:tftp;rootf:nfs)"
+	exit
+fi
+
+path="/mnt/tftp"
+
+global.bootm.image="${path}/linuximage"
+#global.bootm.oftree="${path}/${global.user}-oftree-${global.hostname}"
+global.bootm.oftree="none"
+nfsroot="/home/${global.user}/nfsroot/${global.hostname}"
+bootargs-ip
+bootargs-cam
+bootargs-display
+global.linux.bootargs.dyn.root="root=/dev/nfs nfsroot=$nfsroot,v3,tcp"

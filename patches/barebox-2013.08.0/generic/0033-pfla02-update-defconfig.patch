@@ -1,0 +1,28 @@
+From ea1b93e16dae1de73110e120c7af2a34301be61b Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Tue, 12 Nov 2013 08:23:11 +0100
+Subject: [PATCH 33/55] pfla02: update defconfig
+
+Set version to PD13.2.2_EA3
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/configs/pfal02_defconfig |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/configs/pfal02_defconfig b/arch/arm/configs/pfal02_defconfig
+index f0a452e..5c875f1 100644
+--- a/arch/arm/configs/pfal02_defconfig
++++ b/arch/arm/configs/pfal02_defconfig
+@@ -102,7 +102,7 @@ CONFIG_BAREBOX_UPDATE=y
+ #
+ # General Settings
+ #
+-CONFIG_LOCALVERSION="PD13.2.2_EA2"
++CONFIG_LOCALVERSION="PD13.2.2_EA3"
+ CONFIG_LOCALVERSION_AUTO=y
+ CONFIG_BANNER=y
+ CONFIG_MEMINFO=y
+-- 
+1.7.0.4
+

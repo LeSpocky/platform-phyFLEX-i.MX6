@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Set prim out put (hdmi/ldb)
+prim_out=ldb
+
+#Displays
+#display=Primeview-PD050VL1
+#display=Primeview-PD035VL1
+#display=Primeview-PD104SLF
+#display=Primeview-PM070WL4
+display=ETM0700G0DH6
+
+#HDMI Resolution
+hdmi_res=1280x1024M@60

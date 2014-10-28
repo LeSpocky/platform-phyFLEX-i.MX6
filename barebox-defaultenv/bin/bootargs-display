@@ -1,0 +1,9 @@
+#!/bin/sh
+
+. /env/video/display
+
+if [ "$prim_out" = hdmi ]; then
+	global.linux.bootargs.dyn.display="video=mxcfb0:$hdmi_res video=mxcfb1:$display prim_hdmi=yes"
+else
+	global.linux.bootargs.dyn.display="video=mxcfb0:$display video=mxcfb1:$hdmi_res"
+fi

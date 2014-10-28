@@ -1,0 +1,196 @@
+From 9836f02cafa3e0f6648d113b643707f658a4a591 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 9 Aug 2013 08:49:48 +0200
+Subject: [PATCH 05/55] pfla02: Add env for phytec pfla02
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/env/boot/nand        |   13 +++++++++++++
+ arch/arm/boards/phytec-pfla02/env/boot/net         |   15 +++++++++++++++
+ arch/arm/boards/phytec-pfla02/env/boot/sd-ext3     |   11 +++++++++++
+ arch/arm/boards/phytec-pfla02/env/config-board     |    7 +++++++
+ arch/arm/boards/phytec-pfla02/env/init/automount   |   14 ++++++++++++++
+ arch/arm/boards/phytec-pfla02/env/init/general     |   12 ++++++++++++
+ .../boards/phytec-pfla02/env/init/mtdparts-nand    |   12 ++++++++++++
+ .../arm/boards/phytec-pfla02/env/init/mtdparts-nor |   12 ++++++++++++
+ arch/arm/boards/phytec-pfla02/env/network/eth0     |   16 ++++++++++++++++
+ 9 files changed, 112 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/boot/nand
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/boot/net
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/config-board
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/init/automount
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/init/general
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/network/eth0
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/nand b/arch/arm/boards/phytec-pfla02/env/boot/nand
+new file mode 100644
+index 0000000..f080026
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/boot/nand
+@@ -0,0 +1,13 @@
++#!/bin/sh
++
++if [ "$1" = menu ]; then
++        boot-menu-add-entry "$0" "Kernel:nand;rootfs:nand"
++        exit
++fi
++
++global.bootm.image="/dev/nand0.kernel.bb"
++#global.bootm.oftree="/env/oftree"
++global.bootm.oftree="none"
++bootargs-ip
++global.linux.bootargs.dyn.root="root=ubi0:root ubi.mtd=6 rootfstype=ubifs"
++
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/net b/arch/arm/boards/phytec-pfla02/env/boot/net
+new file mode 100644
+index 0000000..cf16703
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/boot/net
+@@ -0,0 +1,15 @@
++#!/bin/sh
++
++if [ "$1" = menu ]; then
++	boot-menu-add-entry "$0" "network (Kernel:tftp;rootf:nfs)"
++	exit
++fi
++
++path="/mnt/tftp"
++
++global.bootm.image="${path}/linuximage"
++#global.bootm.oftree="${path}/${global.user}-oftree-${global.hostname}"
++global.bootm.oftree="none"
++nfsroot="/home/${global.user}/nfsroot/${global.hostname}"
++bootargs-ip
++global.linux.bootargs.dyn.root="root=/dev/nfs nfsroot=$nfsroot,v3,tcp"
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3 b/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
+new file mode 100644
+index 0000000..7e77e51
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
+@@ -0,0 +1,11 @@
++#!/bin/sh
++
++if [ "$1" = menu ]; then
++        boot-menu-add-entry "$0" "MMC (ext3)"
++        exit
++fi
++
++global.bootm.image="/mnt/kernel/zImage"
++#global.bootm.oftree="/boot/oftree"
++global.bootm.oftree="none"
++global.linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootfstype=ext3 rootwait"
+diff --git a/arch/arm/boards/phytec-pfla02/env/config-board b/arch/arm/boards/phytec-pfla02/env/config-board
+new file mode 100644
+index 0000000..f2bfa54
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/config-board
+@@ -0,0 +1,7 @@
++#!/bin/sh
++
++# board defaults, do not change in running system. Change /env/config
++# instead
++
++global.hostname=phyFLEX-i.MX6
++global.linux.bootargs.base="console=ttymxc3,115200"
+diff --git a/arch/arm/boards/phytec-pfla02/env/init/automount b/arch/arm/boards/phytec-pfla02/env/init/automount
+new file mode 100644
+index 0000000..49d99bd
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/init/automount
+@@ -0,0 +1,14 @@
++#!/bin/sh
++
++if [ "$1" = menu ]; then
++	init-menu-add-entry "$0" "Automountpoints"
++	exit
++fi
++
++# automount tftp server based on $eth0.serverip
++
++mkdir -p /mnt/tftp
++automount /mnt/tftp 'ifup eth0 && mount -t tftp $eth0.serverip /mnt/tftp'
++
++mkdir -p /mnt/mmc
++automount -d /mnt/mmc 'mmc2.probe=1 && [ -e /dev/mmc2.0 ] && mount /dev/mmc2.0 /mnt/mmc'
+diff --git a/arch/arm/boards/phytec-pfla02/env/init/general b/arch/arm/boards/phytec-pfla02/env/init/general
+new file mode 100644
+index 0000000..2a4b7bf
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/init/general
+@@ -0,0 +1,12 @@
++#!/bin/sh
++
++if [ "$1" = menu ]; then
++	init-menu-add-entry "$0" "general config settings"
++	exit
++fi
++
++# timeout in seconds before the default boot entry is started
++global.autoboot_timeout=3
++
++# default boot entry (one of /env/boot/*)
++global.boot.default=nand
+diff --git a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
+new file mode 100644
+index 0000000..02c2f40
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
+@@ -0,0 +1,12 @@
++#!/bin/sh
++
++if [ "$1" = menu ]; then
++	init-menu-add-entry "$0" "NAND partitions"
++	exit
++fi
++
++mtdparts="2M(nand0.barebox),128k(nand0.bareboxenv),8M(nand0.kernel),-(nand0.root)"
++#mtdparts="512k(nand0.barebox)ro,128k(nand0.bareboxenv),-(nand0.sys)"
++kernelname="gpmi-nand"
++
++mtdparts-add -b -d nand0 -k ${kernelname} -p ${mtdparts}
+diff --git a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor
+new file mode 100644
+index 0000000..fbcfc45
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor
+@@ -0,0 +1,12 @@
++#!/bin/sh
++
++if [ "$1" = menu ]; then
++        init-menu-add-entry "$0" "NOR partitions"
++        exit
++fi
++
++#mtdparts="512k(nor0.barebox),512k(nor0.bareboxenv),4M(nor0.kernel),-(nor0.root)"
++mtdparts="512k(m25p0.barebox),512k(m25p0.bareboxenv),4M(m25p0.kernel),-(m25p0.root)"
++kernelname="n25q128"
++
++mtdparts-add -d nor0 -k ${kernelname} -p ${mtdparts}
+diff --git a/arch/arm/boards/phytec-pfla02/env/network/eth0 b/arch/arm/boards/phytec-pfla02/env/network/eth0
+new file mode 100644
+index 0000000..03dcca0
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/network/eth0
+@@ -0,0 +1,16 @@
++#!/bin/sh
++
++# ip setting (static/dhcp)
++ip=static
++global.dhcp.vendor_id=barebox-${global.hostname}
++
++# static setup used if ip=static
++ipaddr=192.168.3.11
++netmask=255.255.255.0
++gateway=192.168.3.10
++serverip=192.168.3.10
++
++# MAC address if needed
++#ethaddr=xx:xx:xx:xx:xx:xx
++
++# put code to discover eth0 (i.e. 'usb') to /env/network/eth0-discover
+-- 
+1.7.0.4
+

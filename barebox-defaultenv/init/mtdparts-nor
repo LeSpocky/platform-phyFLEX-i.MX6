@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if [ "$1" = menu ]; then
+        init-menu-add-entry "$0" "NOR partitions"
+        exit
+fi
+
+mtdparts="512k(m25p0.barebox),64k(m25p0.bareboxenv)"
+kernelname="n25q128"
+
+if [ -n ${kernelname} ]; then
+	global linux.mtdparts.m25p0
+	global.linux.mtdparts.m25p0="${kernelname}:${mtdparts}"
+fi

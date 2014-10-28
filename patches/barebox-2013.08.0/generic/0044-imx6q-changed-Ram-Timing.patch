@@ -1,0 +1,38 @@
+From b7bc8312f35251234637ad0c03fdca0c2251868a Mon Sep 17 00:00:00 2001
+From: Maik Otto <m.otto@phytec.de>
+Date: Fri, 29 Nov 2013 09:40:45 +0100
+Subject: [PATCH 44/55] imx6q: changed Ram Timing
+
+Add WALAT Bit in MISC Register
+Signed-off-by: Maik Otto <m.otto@phytec.de>
+---
+ .../phytec-pfla02/flash-header-phytec-pfla02.h     |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
+index 96247f3..ebe2186 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
+@@ -50,7 +50,7 @@ wm 32 0x021b481c 0x33333333
+ wm 32 0x021b4820 0x33333333
+ wm 32 0x021b4824 0x33333333
+ wm 32 0x021b4828 0x33333333
+-wm 32 0x021b0018 0x00081740
++wm 32 0x021b0018 0x00091740
+ wm 32 0x021b001c 0x00008000
+ wm 32 0x021b000c 0x555a7975
+ wm 32 0x021b0010 0xff538e64
+@@ -87,8 +87,8 @@ wm 32 0x021b0850 0x403F4738
+ wm 32 0x021b4850 0x452E493C
+ wm 32 0x021b080c 0x00220022
+ wm 32 0x021b0810 0x00310036
+-wm 32 0x021b480c 0x0033002e
+-wm 32 0x021b4810 0x003e003b
++wm 32 0x021b480c 0x00470042
++wm 32 0x021b4810 0x00520050
+ wm 32 0x021b08b8 0x00000800
+ wm 32 0x021b48b8 0x00000800
+ wm 32 0x021b001c 0x00000000
+-- 
+1.7.0.4
+

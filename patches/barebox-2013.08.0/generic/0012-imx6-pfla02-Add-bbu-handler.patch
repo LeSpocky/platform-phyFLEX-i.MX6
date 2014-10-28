@@ -1,0 +1,42 @@
+From bc0f7a13aef9e848cd5ae9221d87ca0382da80ff Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 23 Aug 2013 21:16:42 +0200
+Subject: [PATCH 12/55] imx6: pfla02: Add bbu handler
+
+Add bbu handler for SPI NOR and mmc
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/board.c |    9 +++++++++
+ 1 files changed, 9 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index ad6f08d..a6ce633 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -32,6 +32,7 @@
+ 
+ #include <mach/iomux-mx6.h>
+ #include <mach/imx6.h>
++#include <mach/bbu.h>
+ 
+ #define GPIO_2_11_PD_CTL	MX6_PAD_CTL_PUS_100K_DOWN | MX6_PAD_CTL_PUE | MX6_PAD_CTL_PKE | \
+ 				MX6_PAD_CTL_SPEED_MED | MX6_PAD_CTL_DSE_40ohm | MX6_PAD_CTL_HYS
+@@ -106,6 +107,14 @@ static int phytec_pfla02_init(void)
+ 		return 0;
+ 	}
+ 
++	imx6_bbu_internal_spi_i2c_register_handler("spiflash", "/dev/m25p0.barebox",
++				BBU_HANDLER_FLAG_DEFAULT, (void *)flash_header_start,
++				flash_header_end - flash_header_start, 0);
++
++
++	imx6_bbu_internal_mmc_register_handler("mmc", "/dev/mmc2",
++			0, (void *)flash_header_start, flash_header_end - flash_header_start, 0);
++
+ 	eth_phy_reset();
+ 	phy_register_fixup_for_uid(PHY_ID_KSZ9031, MICREL_PHY_ID_MASK,
+ 					   ksz9031rn_phy_fixup);
+-- 
+1.7.0.4
+

@@ -1,0 +1,72 @@
+From adb0a50ccd29e7f6b6b984e4f454a4c61870bb53 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 9 Aug 2013 10:44:54 +0200
+Subject: [PATCH 07/55] pfla02: phyFLEX: Add workaround for errata006282
+
+This workaround is for freescale errata 006282
+	|ROM code uses nonreset PFDs to generate clocks, which may
+	|lead to random boot failures
+    	http://cache.freescale.com/files/32bit/doc/errata/IMX6DQCE.pdf?fpsp=1&WT_TYPE=Errata&WT_VENDOR=FREESCALE&WT_FILE_FORMAT=pdf&WT_ASSET=Documentation
+
+We toggle the CMIC_WAKE pin to signal that the barebox is booted
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/board.c |   19 +++++++++++++++++++
+ arch/arm/dts/imx6q-phytec-pfla02.dtsi |    1 +
+ 2 files changed, 20 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index d6d076d..ae33e1f 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -25,8 +25,25 @@
+ 
+ #include <linux/micrel_phy.h>
+ 
++#include <mach/iomux-mx6.h>
+ #include <mach/imx6.h>
+ 
++#define GPIO_2_11_PD_CTL	MX6_PAD_CTL_PUS_100K_DOWN | MX6_PAD_CTL_PUE | MX6_PAD_CTL_PKE | \
++				MX6_PAD_CTL_SPEED_MED | MX6_PAD_CTL_DSE_40ohm | MX6_PAD_CTL_HYS
++#define MX6Q_PAD_SD4_DAT3__GPIO_2_11_PD (_MX6Q_PAD_SD4_DAT3__GPIO_2_11 | MUX_PAD_CTRL(GPIO_2_11_PD_CTL))
++
++#define MX6_PHYFLEX_ERR006282	IMX_GPIO_NR(2, 11)
++static void phyflex_err006282_workaround(void)
++{
++	if (gpio_direction_output(MX6_PHYFLEX_ERR006282, 1) != 0)
++		printf("gpio_direction_output(MX6_PHYFLEX_ERR006282, 0) failed\n");
++
++	mdelay(20);
++	gpio_set_value(MX6_PHYFLEX_ERR006282, 0);
++	mxc_iomux_v3_setup_pad(MX6Q_PAD_SD4_DAT3__GPIO_2_11_PD);	
++	gpio_direction_input(MX6_PHYFLEX_ERR006282);
++}
++
+ #define ETH_PHY_RST	IMX_GPIO_NR(3, 23)
+ 
+ static int eth_phy_reset(void)
+@@ -68,6 +85,8 @@ static int phytec_pfla02_init(void)
+ 	void *flash_header_start;
+ 	void *flash_header_end;
+ 
++	phyflex_err006282_workaround();
++
+ 	if (of_machine_is_compatible("phytec,imx6q-pfla02")) {
+ 		flash_header_start = (void *)flash_header_phytec_pfla02_1gib_start;
+ 		flash_header_end = (void *)flash_header_phytec_pfla02_1gib_end;
+diff --git a/arch/arm/dts/imx6q-phytec-pfla02.dtsi b/arch/arm/dts/imx6q-phytec-pfla02.dtsi
+index ee943dd..9fc767d 100644
+--- a/arch/arm/dts/imx6q-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6q-phytec-pfla02.dtsi
+@@ -50,6 +50,7 @@
+ 			fsl,pins = <
+ 				MX6Q_PAD_EIM_D23__GPIO3_IO23    0x80000000
+ 				MX6Q_PAD_DISP0_DAT3__GPIO4_IO24	0x80000000 /* SPI NOR chipselect */
++				MX6Q_PAD_SD4_DAT3__GPIO2_IO11	0x80000000
+ 			>;
+ 		};
+ 	};
+-- 
+1.7.0.4
+

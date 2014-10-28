@@ -1,0 +1,26 @@
+From 5538806de15ebd41792d6abdd63c57fd2bac8962 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Mon, 2 Sep 2013 07:57:05 +0200
+Subject: [PATCH 17/55] commands: Fix memtest return value
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ commands/memtest.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/commands/memtest.c b/commands/memtest.c
+index d2a1487..c82badc 100644
+--- a/commands/memtest.c
++++ b/commands/memtest.c
+@@ -236,7 +236,7 @@ out:
+ 		return 1;
+ 	} else {
+ 		printf("Memtest successful.\n");
+-		return 1;
++		return 0;
+ 	}
+ }
+ 
+-- 
+1.7.0.4
+

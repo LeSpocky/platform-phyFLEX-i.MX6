@@ -1,0 +1,38 @@
+From cf492a8d69bfc12ab1e8651730f48979424adb54 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Thu, 8 Aug 2013 13:03:28 +0200
+Subject: [PATCH 03/55] common: bootm: boot none oftree kernel
+
+If we have a platform which has a devicetree in barebox, barebox will also
+load the kernel with oftee. If we have no separate devicetree file barebox will
+use the buildin devicetree. To say barebox that they will load a kernel without
+devicetree, we can set the barebox env parameter
+global.bootm.oftree=none
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ common/bootm.c |    8 +++++---
+ 1 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/common/bootm.c b/common/bootm.c
+index 1987a09..9a037ed 100644
+--- a/common/bootm.c
++++ b/common/bootm.c
+@@ -260,9 +260,11 @@ int bootm_boot(struct image_data *data)
+ 
+ 	if (IS_ENABLED(CONFIG_OFTREE)) {
+ 		if (data->oftree_file) {
+-			ret = bootm_open_oftree(data, data->oftree_file, data->oftree_num);
+-			if (ret)
+-				goto err_out;
++			if (strcmp(data->oftree_file, "none") != 0) {
++				ret = bootm_open_oftree(data, data->oftree_file, data->oftree_num);
++				if (ret)
++					goto err_out;
++			}
+ 		} else {
+ 			data->of_root_node = of_get_root_node();
+ 			if (data->of_root_node)
+-- 
+1.7.0.4
+

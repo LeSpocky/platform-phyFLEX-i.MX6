@@ -1,0 +1,39 @@
+From 127268eecfc7a51c3993f4ad1fe04a979723bd91 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Tue, 1 Oct 2013 14:21:45 +0200
+Subject: [PATCH 22/55] phyflex-imx6:env: Add possibility to adjust HDMI res
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ .../boards/phytec-pfla02/env/bin/bootargs-display  |    4 ++--
+ arch/arm/boards/phytec-pfla02/env/video/display    |    3 +++
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/bin/bootargs-display b/arch/arm/boards/phytec-pfla02/env/bin/bootargs-display
+index 7d6d375..d79f5be 100644
+--- a/arch/arm/boards/phytec-pfla02/env/bin/bootargs-display
++++ b/arch/arm/boards/phytec-pfla02/env/bin/bootargs-display
+@@ -3,7 +3,7 @@
+ . /env/video/display
+ 
+ if [ "$prim_out" = hdmi ]; then
+-	global.linux.bootargs.dyn.display="video=mxcfb1:$display prim_hdmi=yes"
++	global.linux.bootargs.dyn.display="video=mxcfb0:$hdmi_res video=mxcfb1:$display prim_hdmi=yes"
+ else
+-	global.linux.bootargs.dyn.display="video=mxcfb0:$display"
++	global.linux.bootargs.dyn.display="video=mxcfb0:$display video=mxcfb1:$hdmi_res"
+ fi
+diff --git a/arch/arm/boards/phytec-pfla02/env/video/display b/arch/arm/boards/phytec-pfla02/env/video/display
+index 8a8620f..6ddd771 100644
+--- a/arch/arm/boards/phytec-pfla02/env/video/display
++++ b/arch/arm/boards/phytec-pfla02/env/video/display
+@@ -9,3 +9,6 @@ prim_out=ldb
+ #display=Primeview-PD104SLF
+ #display=Primeview-PM070WL4
+ display=ETM0700G0DH6
++
++#HDMI Resolution
++hdmi_res=1280x1024M@60
+-- 
+1.7.0.4
+

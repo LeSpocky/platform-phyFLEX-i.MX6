@@ -1,0 +1,29 @@
+From 0f98fe51c8bb114679a8ff2393ad1b89af4e4872 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Thu, 10 Oct 2013 09:16:00 +0200
+Subject: [PATCH 26/55] imx6s: Muxing for version control pins
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/dts/imx6s-phytec-pfla02.dtsi |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/dts/imx6s-phytec-pfla02.dtsi b/arch/arm/dts/imx6s-phytec-pfla02.dtsi
+index 7feb543..7925d5f 100644
+--- a/arch/arm/dts/imx6s-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6s-phytec-pfla02.dtsi
+@@ -29,6 +29,11 @@
+ 		pinctrl_hog: hoggrp {
+ 			fsl,pins = <
+ 				MX6DL_PAD_EIM_D23__GPIO3_IO23    0x80000000
++				MX6DL_PAD_SD4_DAT3__GPIO2_IO11   0x80000000
++                                MX6DL_PAD_SD4_DAT4__GPIO2_IO12   0x80000000
++                                MX6DL_PAD_SD4_DAT5__GPIO2_IO13   0x80000000
++                                MX6DL_PAD_SD4_DAT6__GPIO2_IO14   0x80000000
++                                MX6DL_PAD_SD4_DAT7__GPIO2_IO15   0x80000000
+ 			>;
+ 		};
+ 	};
+-- 
+1.7.0.4
+

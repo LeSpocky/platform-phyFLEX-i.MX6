@@ -1,0 +1,27 @@
+From a67c78ba5ccacf8e1de0e3302034e9c94120d181 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Thu, 17 Oct 2013 10:02:09 +0200
+Subject: [PATCH 30/55] imx6: pfla02: env: set ubi mtd to nand0.root
+
+when ubi.mtd=0 is used the rootfs will not correct mounted if the root partition
+is not 5. With ubi.mtd=nand0.root this will be fixed.
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/env/boot/nand |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/nand b/arch/arm/boards/phytec-pfla02/env/boot/nand
+index 06f61b3..6d757ef 100644
+--- a/arch/arm/boards/phytec-pfla02/env/boot/nand
++++ b/arch/arm/boards/phytec-pfla02/env/boot/nand
+@@ -11,5 +11,5 @@ global.bootm.oftree="none"
+ bootargs-ip
+ bootargs-cam
+ bootargs-display
+-global.linux.bootargs.dyn.root="root=ubi0:root ubi.mtd=5 rootfstype=ubifs"
++global.linux.bootargs.dyn.root="root=ubi0:root ubi.mtd=nand0.root rootfstype=ubifs"
+ 
+-- 
+1.7.0.4
+

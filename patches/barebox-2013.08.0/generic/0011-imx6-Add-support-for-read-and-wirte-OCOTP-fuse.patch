@@ -1,0 +1,721 @@
+From 69a8705781fc4fff4df24f218bc47fd68276f90f Mon Sep 17 00:00:00 2001
+From: Andrei Andreyanau <a.andreyanau@sam-solutions.com>
+Date: Fri, 23 Aug 2013 14:49:15 +0300
+Subject: [PATCH 11/55] imx6: Add support for read and wirte OCOTP fuse
+
+Added support for read/write of iMX6 OCOTP fuses without support
+of shadow registers (gives direct access to OCOTP fuses only).
+
+Signed-off-by: Andrei Andreyanau <a.andreyanau@sam-solutions.com>
+
+	modified:   arch/arm/boards/phytec-pfla02/board.c
+	modified:   arch/arm/mach-imx/Kconfig
+	modified:   arch/arm/mach-imx/Makefile
+	new file:   arch/arm/mach-imx/imx6-ocotp.c
+	modified:   commands/Kconfig
+	modified:   commands/Makefile
+	new file:   commands/ocotptool.c
+---
+ arch/arm/boards/phytec-pfla02/board.c |    5 +
+ arch/arm/mach-imx/Kconfig             |   17 ++-
+ arch/arm/mach-imx/Makefile            |    1 +
+ arch/arm/mach-imx/imx6-ocotp.c        |  442 +++++++++++++++++++++++++++++++++
+ commands/Kconfig                      |    7 +
+ commands/Makefile                     |    1 +
+ commands/ocotptool.c                  |  133 ++++++++++
+ 7 files changed, 605 insertions(+), 1 deletions(-)
+ create mode 100644 arch/arm/mach-imx/imx6-ocotp.c
+ create mode 100644 commands/ocotptool.c
+
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index 5ff5b44..ad6f08d 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -26,6 +26,7 @@
+ #include <init.h>
+ #include <of.h>
+ #include <fec.h>
++#include <sizes.h>
+ 
+ #include <linux/micrel_phy.h>
+ 
+@@ -136,6 +137,10 @@ static int phytec_pfla02_init(void)
+ 
+ 	armlinux_set_bootparams((void *)0x10000100);
+ 	armlinux_set_architecture(3529);
++#ifdef CONFIG_IMX6_OCOTP_TOOLS
++	add_generic_device("imx6_ocotp", -1, NULL, MX6_OCOTP_BASE_ADDR,
++				SZ_16K, IORESOURCE_MEM, NULL);
++#endif
+ 
+ 	return 0;
+ }
+diff --git a/arch/arm/mach-imx/Kconfig b/arch/arm/mach-imx/Kconfig
+index b1a539a..b1f5329 100644
+--- a/arch/arm/mach-imx/Kconfig
++++ b/arch/arm/mach-imx/Kconfig
+@@ -593,7 +593,7 @@ config ARCH_IMX_USBLOADER
+ 
+ config IMX_IIM
+ 	tristate "IIM fusebox device"
+-	depends on !ARCH_IMX21 && !ARCH_IMX21
++	depends on !ARCH_IMX21 && !ARCH_IMX21 && !ARCH_IMX6
+ 	help
+ 	  Device driver for the IC Identification Module (IIM) fusebox. Use the
+ 	  regular md/mw commands to program and read the fusebox.
+@@ -622,11 +622,26 @@ config IMX_OCOTP
+ 	tristate "i.MX6 On Chip OTP controller"
+ 	depends on ARCH_IMX6
+ 	depends on OFDEVICE
++	default y
+ 	help
+ 	  This adds support for the i.MX6 On-Chip OTP controller. Currently the
+ 	  only supported functionality is reading the MAC address and assigning
+ 	  it to an ethernet device.
+ 
++config IMX6_OCOTP_TOOLS
++	tristate "Tools for i.MX6 On Chip OTP"
++	depends on ARCH_IMX6 && OFDEVICE && !IMX_OCOTP
++	default n
++	help
++	  This adds function for the i.MX6 On-Chip OTP controller.
++	  Read/write i.MX6 fuses function.
++	  Read and write MAC address from fuses
++
++config IMX6_OCOTPWRITE_ENABLED
++	bool
++	prompt "enable write support for i.MX6 CPUs OTP fuses"
++	depends on IMX6_OCOTP_TOOLS
++
+ endmenu
+ 
+ endif
+diff --git a/arch/arm/mach-imx/Makefile b/arch/arm/mach-imx/Makefile
+index b3f00f9..5c0955f 100644
+--- a/arch/arm/mach-imx/Makefile
++++ b/arch/arm/mach-imx/Makefile
+@@ -13,6 +13,7 @@ obj-$(CONFIG_ARCH_IMX6) += imx6.o usb-imx6.o clk-imx6.o
+ lwl-$(CONFIG_ARCH_IMX6) += imx6-mmdc.o
+ obj-$(CONFIG_IMX_IIM)	+= iim.o
+ obj-$(CONFIG_IMX_OCOTP)	+= ocotp.o
++obj-$(CONFIG_IMX6_OCOTP_TOOLS)	+= imx6-ocotp.o
+ obj-$(CONFIG_NAND_IMX) += nand.o
+ lwl-$(CONFIG_ARCH_IMX_EXTERNAL_BOOT_NAND) += external-nand-boot.o
+ obj-$(CONFIG_COMMON_CLK) += clk-pllv1.o clk-pllv2.o clk-pllv3.o clk-pfd.o
+diff --git a/arch/arm/mach-imx/imx6-ocotp.c b/arch/arm/mach-imx/imx6-ocotp.c
+new file mode 100644
+index 0000000..c05ac79
+--- /dev/null
++++ b/arch/arm/mach-imx/imx6-ocotp.c
+@@ -0,0 +1,442 @@
++/*
++ * imx6-ocotp.c - i.MX6 ocotp fusebox driver
++ *
++ * Provide an interface for programming and sensing the information that are
++ * stored in on-chip fuse elements.
++ *
++ * Copyright (c) 2013 Phytec
++ * Anatoly Palto <a.palto@sam-solutions.com>,
++ *
++ * This program is free software;you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2
++ * as published by the Free Software Foundation.
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++#include <common.h>
++#include <driver.h>
++#include <malloc.h>
++#include <xfuncs.h>
++#include <errno.h>
++#include <init.h>
++#include <net.h>
++#include <io.h>
++#include <linux/clk.h>
++
++#include <mach/imx6-regs.h>
++
++/*
++ * a single MAC address reference has the form
++ * <&phandle regoffset>
++ */
++#define MAC_ADDRESS_PROPLEN	(2 * sizeof(__be32))
++
++#define IMX6_OTP_ADDR_MAX		0x7F
++#define IMX6_OTP_DATA_ERROR_VAL	0xBADABADA
++
++#define FUSE_REGS_COUNT		(16 * 8)
++
++#define BP_OCOTP_CTRL_WR_UNLOCK		16
++#define BM_OCOTP_CTRL_WR_UNLOCK		0xFFFF0000
++#define BV_OCOTP_CTRL_WR_UNLOCK__KEY	0x3E77
++#define BM_OCOTP_CTRL_RELOAD_SHADOWS	0x00000400
++#define BM_OCOTP_CTRL_ERROR		0x00000200
++#define BM_OCOTP_CTRL_BUSY		0x00000100
++#define BP_OCOTP_CTRL_ADDR		0
++#define BM_OCOTP_CTRL_ADDR		0x0000007F
++
++#define BP_OCOTP_TIMING_STROBE_READ	16
++#define BM_OCOTP_TIMING_STROBE_READ	0x003F0000
++#define BP_OCOTP_TIMING_RELAX		12
++#define BM_OCOTP_TIMING_RELAX		0x0000F000
++#define BP_OCOTP_TIMING_STROBE_PROG     0
++#define BM_OCOTP_TIMING_STROBE_PROG	0x00000FFF
++
++#define BM_OCOTP_READ_CTRL_READ_FUSE	0x00000001
++
++#define DEF_RELAX               20
++#define BF(value, field)		(((value) << BP_##field) & BM_##field)
++
++static int osotp_sense_enable;
++
++int imx6_ocotp_read_one_u32(u32 index, u32 *pdata);
++
++struct ocotp_priv {
++	struct cdev cdev;
++	void __iomem *base;
++	int regsize;
++};
++
++/* OCOTP Registers */
++struct ocotp_regs {
++	u32		ctrl;
++	u32		ctrl_set;
++	u32		ctrl_clr;
++	u32		ctrl_tog;
++	u32		timing;
++	u32		rsvd0[3];
++	u32		data;
++	u32		rsvd1[3];
++	u32		read_ctrl;
++	u32		rsvd2[3];
++	u32		fuse_data;
++	u32		rsvd3[3];
++	u32		sticky;
++	u32		rsvd4[3];
++	u32		scs;
++	u32		scs_set;
++	u32		scs_clr;
++	u32		scs_tog;
++	u32		rsvd5[8];
++	u32		version;
++	u32		rsvd6[0xDB];
++	u32		lock;
++	u32		rsvd7[3];
++
++	struct fuse_bank {
++		u32	fuse_regs[0x1F];
++	} bank[15];
++};
++
++
++static int imx6_ocotp_wait_busy(u32 flags)
++{
++	int count;
++	u32 c;
++	struct ocotp_regs *otp = (struct ocotp_regs *)MX6_OCOTP_BASE_ADDR;
++
++	for (count = 10000; count >= 0; count--) {
++		c = readl(&otp->ctrl);
++		if (!(c & (BM_OCOTP_CTRL_BUSY | BM_OCOTP_CTRL_ERROR | flags)))
++			break;
++	}
++
++	if (count < 0) {
++		printf("ERROR: otp_wait_busy timeout. 0x%X\n", c);
++		/* clear ERROR bit, busy bit will be cleared by controller */
++		writel(BM_OCOTP_CTRL_ERROR, &otp->ctrl_clr);
++		return -1;
++	}
++
++	return 0;
++}
++
++static int imx6_ocotp_set_timing(void)
++{
++	u32 clk_rate;
++	u32 relax, strobe_read, strobe_prog;
++	u32 timing;
++	struct ocotp_regs *otp = (struct ocotp_regs *)MX6_OCOTP_BASE_ADDR;
++
++	/* get clock */
++	clk_rate = clk_get_rate(clk_lookup("ipg"));
++	if (clk_rate == -1) {
++		printf("ERROR: imx6_get_gptclk failed\n");
++		return -1;
++	}
++
++	relax = clk_rate / (1000000000 / DEF_RELAX) - 1;
++	strobe_prog = clk_rate / (1000000000 / 10000) + 2 * (DEF_RELAX + 1) - 1;
++	strobe_read = clk_rate / (1000000000 / 40) + 2 * (DEF_RELAX + 1) - 1;
++
++	timing = BF(relax, OCOTP_TIMING_RELAX);
++	timing |= BF(strobe_read, OCOTP_TIMING_STROBE_READ);
++	timing |= BF(strobe_prog, OCOTP_TIMING_STROBE_PROG);
++
++	writel(timing, &otp->timing);
++
++	return 0;
++}
++
++static int imx6_ocotp_read_prep(void)
++{
++	return  (!imx6_ocotp_set_timing()) ? imx6_ocotp_wait_busy(0) : -1;
++}
++
++#ifdef CONFIG_IMX6_OCOTPWRITE_ENABLED
++static int imx6_ocotp_blow_prep(void)
++{
++	return  (!imx6_ocotp_set_timing()) ? imx6_ocotp_wait_busy(0) : -1;
++}
++
++static int imx6_ocotp_blow_post(void)
++{
++	struct ocotp_regs *otp = (struct ocotp_regs *)MX6_OCOTP_BASE_ADDR;
++
++	printf("Reloading shadow registers...\n");
++	/* reload all the shadow registers */
++	writel(BM_OCOTP_CTRL_RELOAD_SHADOWS, &otp->ctrl_set);
++	udelay(1);
++
++	return imx6_ocotp_wait_busy(BM_OCOTP_CTRL_RELOAD_SHADOWS);
++}
++
++static int fuse_blow_addr(u32 addr, u32 value)
++{
++	u32 ctrl_reg;
++	struct ocotp_regs *otp = (struct ocotp_regs *)MX6_OCOTP_BASE_ADDR;
++
++	/* control register */
++	ctrl_reg = readl(&otp->ctrl);
++	ctrl_reg &= ~BM_OCOTP_CTRL_ADDR;
++	ctrl_reg |= BF(addr, OCOTP_CTRL_ADDR);
++	ctrl_reg |= BF(BV_OCOTP_CTRL_WR_UNLOCK__KEY, OCOTP_CTRL_WR_UNLOCK);
++	writel(ctrl_reg, &otp->ctrl);
++
++	writel(value, &otp->data);
++	if (imx6_ocotp_wait_busy(0))
++		return -1;
++
++	/* write postamble */
++	udelay(2000);
++	return 0;
++}
++
++/*
++ * blow one u32 to indexed fuse
++ */
++int imx6_ocotp_blow_one_u32(u32 index, u32 data, u32 *pfused_value)
++{
++	struct ocotp_regs *otp = (struct ocotp_regs *)MX6_OCOTP_BASE_ADDR;
++
++	if (imx6_ocotp_blow_prep()) {
++		printf("ERROR: blow preparation failed\n");
++		return -1;
++	}
++
++	if (fuse_blow_addr(index, data)) {
++		printf("ERROR: blow fuse failed\n");
++		return -1;
++	}
++
++	if (imx6_ocotp_blow_post()) {
++		printf("ERROR: blow post operation failed\n");
++		return -1;
++	}
++
++	if (readl(&otp->ctrl) & BM_OCOTP_CTRL_ERROR) {
++		printf("ERROR: OTP control\n");
++		return -1;
++	}
++
++	if (imx6_ocotp_read_one_u32(index, pfused_value)) {
++		printf("ERROR: OTP read\n");
++		return -1;
++	}
++
++	return 0;
++}
++
++static ssize_t imx6_ocotp_cdev_write(struct cdev *cdev,
++		const void *buf, size_t count,
++		loff_t offset, ulong flags)
++{
++	ulong size, index, i;
++	u32		data, pfuse;
++
++	index = offset >> 2;
++	size = count >> 2;
++
++	if (size > (FUSE_REGS_COUNT - index))
++		size = FUSE_REGS_COUNT - index - 1;
++
++	if (IS_ENABLED(CONFIG_IMX6_OCOTPWRITE_ENABLED)) {
++		for (i = 0; i < size; i++) {
++			int ret;
++
++			memcpy(&data, buf + i * 4, 4);
++			ret = imx6_ocotp_blow_one_u32(index + i, data, &pfuse);
++			if (ret < 0)
++				return ret;
++		}
++	}
++
++	return count;
++}
++#endif
++
++
++static int fuse_read_addr(u32 addr, u32 *pdata)
++{
++	u32 ctrl_reg;
++	struct ocotp_regs *otp = (struct ocotp_regs *)MX6_OCOTP_BASE_ADDR;
++
++	ctrl_reg = readl(&otp->ctrl);
++	ctrl_reg &= ~BM_OCOTP_CTRL_ADDR;
++	ctrl_reg &= ~BM_OCOTP_CTRL_WR_UNLOCK;
++	ctrl_reg |= BF(addr, OCOTP_CTRL_ADDR);
++	writel(ctrl_reg, &otp->ctrl);
++
++	writel(BM_OCOTP_READ_CTRL_READ_FUSE, &otp->read_ctrl);
++	if (imx6_ocotp_wait_busy(0))
++		return -1;
++
++	*pdata = readl(&otp->fuse_data);
++	return 0;
++}
++
++
++/*
++ * read one u32 to indexed fuse
++ */
++int imx6_ocotp_read_one_u32(u32 index, u32 *pdata)
++{
++	u32 ctrl_reg;
++	struct ocotp_regs *otp = (struct ocotp_regs *)MX6_OCOTP_BASE_ADDR;
++
++	if (index > IMX6_OTP_ADDR_MAX) {
++		printf("ERROR: invalid address.\n");
++		return -1;
++	}
++
++	if (imx6_ocotp_read_prep()) {
++		printf("ERROR: read preparation failed\n");
++		return -1;
++	}
++
++	if (fuse_read_addr(index, pdata)) {
++		printf("ERROR: read failed\n");
++		return -1;
++	}
++
++	if (*pdata == IMX6_OTP_DATA_ERROR_VAL) {
++		ctrl_reg = readl(&otp->ctrl);
++		if (ctrl_reg & BM_OCOTP_CTRL_ERROR) {
++			printf("ERROR: read fuse failed\n");
++			return -1;
++		}
++	}
++
++	return 0;
++}
++
++static ssize_t imx6_ocotp_cdev_read(struct cdev *cdev, void *buf, size_t count,
++		loff_t offset, ulong flags)
++{
++	ulong i;
++	struct device_d *dev = cdev->dev;
++	void __iomem *base;
++	u32		index;
++
++	base = dev_request_mem_region(dev, 0);
++
++	index = offset >> 2;
++	count >>= 2;
++	if (count > (FUSE_REGS_COUNT - index))
++		count = FUSE_REGS_COUNT - index - 1;
++
++	for (i = index; i < (index + count); i++) {
++		imx6_ocotp_read_one_u32(i, buf);
++		buf += 4;
++	}
++	count <<= 2;
++
++	return count;
++}
++
++static struct file_operations imx6_ocotp_ops = {
++	.read	= imx6_ocotp_cdev_read,
++#ifdef CONFIG_IMX6_OCOTPWRITE_ENABLED
++	.write	= imx6_ocotp_cdev_write,
++#endif
++	.lseek	= dev_lseek_default,
++};
++
++
++int imx6_ocotp_init_mac(struct device_d *dev)
++{
++	char mac[6];
++	int len;
++	const __be32 *prop;
++	struct device_node *node = dev->device_node;
++	u32 value;
++	struct device_node *rnode;
++	uint32_t phandle;
++	int ret;
++
++	if (!node)
++		return -1;
++
++	prop = of_get_property(node, "barebox,provide-mac-address", &len);
++	if (!prop)
++		return -1;
++
++	phandle = be32_to_cpup(prop++);
++
++	rnode = of_find_node_by_phandle(phandle);
++
++	ret = imx6_ocotp_read_one_u32(0x23, &value);
++	if (ret)
++		return -1;
++	mac[0] = (value >> 8);
++	mac[1] = value;
++	ret = imx6_ocotp_read_one_u32(0x22, &value);
++
++	if (ret)
++		return -1;
++	mac[2] = value >> 24;
++	mac[3] = value >> 16;
++	mac[4] = value >> 8;
++	mac[5] = value;
++
++	of_eth_register_ethaddr(rnode, mac);
++
++return 0;
++}
++
++static int imx6_ocotp_probe(struct device_d *dev)
++{
++	void __iomem *base;
++	int ret = 0;
++	struct ocotp_priv *priv;
++	struct cdev *cdev;
++
++	base = dev_request_mem_region(dev, 0);
++	if (!base)
++		return -EBUSY;
++
++	priv = xzalloc(sizeof(*priv));
++
++	priv->base	= base;
++	cdev = &priv->cdev;
++	cdev->dev	= dev;
++	cdev->ops	= &imx6_ocotp_ops;
++	cdev->priv	= priv;
++	cdev->size	= 32;
++	cdev->name	= asprintf("imx6-ocotp");
++	if (cdev->name == NULL)
++		return -ENOMEM;
++
++	ret = devfs_create(cdev);
++
++	imx6_ocotp_init_mac(dev);
++
++	dev_add_param_bool(dev, "explicit_sense_enable",
++			NULL, NULL, &osotp_sense_enable, NULL);
++
++	return ret;
++}
++
++static __maybe_unused struct of_device_id imx6_ocotp_dt_ids[] = {
++	{
++		.compatible = "fsl,imx6q-ocotp",
++	}, {
++		/* sentinel */
++	}
++};
++
++static struct driver_d imx6_ocotp_driver = {
++	.name	= "imx6_ocotp",
++	.probe	= imx6_ocotp_probe,
++	.of_compatible = DRV_OF_COMPAT(imx6_ocotp_dt_ids),
++};
++
++static int imx6_ocotp_init(void)
++{
++	platform_driver_register(&imx6_ocotp_driver);
++
++	return 0;
++}
++coredevice_initcall(imx6_ocotp_init);
+diff --git a/commands/Kconfig b/commands/Kconfig
+index 55e46a0..ccd0d6a 100644
+--- a/commands/Kconfig
++++ b/commands/Kconfig
+@@ -722,6 +722,13 @@ config CMD_MIITOOL
+ 	  detailed MII status information, such as MII capabilities,
+ 	  current advertising mode, and link partner capabilities.
+ 
++config CMD_OCOTPTOOL
++	bool
++	default n
++	depends on IMX6_OCOTP_TOOLS
++	prompt "ocotptool"
++	help
++		i.MX6 OTP fuses read/write support: mac and e.t.
+ config CMD_CLK
+ 	tristate
+ 	depends on COMMON_CLK
+diff --git a/commands/Makefile b/commands/Makefile
+index 6acffc8..65ea350 100644
+--- a/commands/Makefile
++++ b/commands/Makefile
+@@ -91,3 +91,4 @@ obj-$(CONFIG_CMD_FILETYPE)	+= filetype.o
+ obj-$(CONFIG_CMD_BAREBOX_UPDATE)+= barebox-update.o
+ obj-$(CONFIG_CMD_MIITOOL)	+= miitool.o
+ obj-$(CONFIG_CMD_DETECT)	+= detect.o
++obj-$(CONFIG_CMD_OCOTPTOOL)	+= ocotptool.o
+diff --git a/commands/ocotptool.c b/commands/ocotptool.c
+new file mode 100644
+index 0000000..b446a39
+--- /dev/null
++++ b/commands/ocotptool.c
+@@ -0,0 +1,133 @@
++/*
++ * ocotptool.c
++ *
++ * Copyright (c) 2013 Phytec
++ *
++ * Anatoly Palto <a.palto@sam-solutions.com>,
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2
++ * as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ */
++
++#include <common.h>
++#include <command.h>
++#include <complete.h>
++#include <driver.h>
++#include <getopt.h>
++#include <fcntl.h>
++
++#define DEVICENAME	"imx6-ocotp"
++
++#define MAC_LEN		6
++#define BYTE_LEN	3
++
++int parse_mac(char *mac_str, char *mac_bin)
++{
++	int i;
++
++	if (strlen(mac_str) != MAC_LEN * BYTE_LEN - 1)
++		return 1;
++
++	for (i = 0; i < MAC_LEN; i++) {
++		char *start, *end;
++
++		start = mac_str + i * BYTE_LEN;
++		mac_bin[i] = simple_strtoul(start, &end, 16);
++		if (end - start + 1 != BYTE_LEN
++			|| (*end != ':' && *end)
++			|| *start == '-')
++			return 1;
++
++	}
++
++	return 0;
++}
++
++static int do_ocotptool(int argc, char *argv[])
++{
++	struct cdev *cdev;
++	char *name = asprintf(DEVICENAME);
++	char buf[128];
++	int ret = 0;
++#ifdef CONFIG_IMX6_OCOTPWRITE_ENABLED
++	ulong	value;
++	char	str[12];
++#endif
++
++	if (argc < 3) {
++		usage:
++			return COMMAND_ERROR_USAGE;
++	}
++
++	if (!strcmp(argv[1], "read")) {
++		if (!strcmp(argv[2], "mac")) {
++			cdev = cdev_open(name, O_RDONLY);
++			if (!cdev)
++				return -ENODEV;
++			ret = cdev_read(cdev, buf, 2*4, 0x22 * 4, 0);
++			if (ret) {
++				printf("MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
++					buf[5], buf[4], buf[3], buf[2], buf[1], buf[0]);
++			}
++			cdev_close(cdev);
++			free(name);
++		}
++
++#ifdef CONFIG_IMX6_OCOTPWRITE_ENABLED
++	} else if (!strcmp(argv[1], "blow")) {
++		if (argc < 4 || argc > 5)
++			goto usage;
++
++		if (!strcmp(argv[2], "mac")) {
++			if (strlen(argv[3]) > 17)
++				goto usage;
++
++			value = simple_strtoul(argv[3], NULL, 16);
++			if (value == 0)
++				goto usage;
++
++			if (parse_mac(argv[3], str))
++				goto usage;
++
++			buf[0] = str[5]; buf[1] = str[4];
++			buf[2] = str[3]; buf[3] = str[2];
++			buf[4] = str[1]; buf[5] = str[0];
++			buf[6] = 0; buf[7] = 0;
++			cdev = cdev_open(name, O_RDONLY);
++			if (!cdev)
++				return -ENODEV;
++			ret = cdev_write(cdev, buf, 2*4, 0x22 * 4, 0);
++
++			cdev_close(cdev);
++			free(name);
++		}
++#endif
++} else
++		goto usage;
++
++	return ret;
++}
++
++BAREBOX_CMD_HELP_START(ocotptool)
++BAREBOX_CMD_HELP_USAGE("ocotptool [OPTIONS]\n")
++BAREBOX_CMD_HELP_SHORT("example:\n")
++BAREBOX_CMD_HELP_SHORT("  command to read MAC: ocotptool read mac\n")
++#ifdef CONFIG_IMX6_OCOTPWRITE_ENABLED
++BAREBOX_CMD_HELP_SHORT("  command to write MAC:\n")
++BAREBOX_CMD_HELP_SHORT("    ocotptool blow mac xx:xx:xx:xx:xx:xx\n")
++#endif
++BAREBOX_CMD_HELP_END
++
++BAREBOX_CMD_START(ocotptool)
++	.cmd		= do_ocotptool,
++	.usage		= "read/write i.MX6 fuses: MAC e.t.",
++	BAREBOX_CMD_COMPLETE(device_complete)
++	BAREBOX_CMD_HELP(cmd_ocotptool_help)
++BAREBOX_CMD_END
+-- 
+1.7.0.4
+

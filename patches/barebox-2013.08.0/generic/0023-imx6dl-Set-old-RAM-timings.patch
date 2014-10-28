@@ -1,0 +1,51 @@
+From a296d77f1440e883375c0070aee883a9f6ba8dab Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 4 Oct 2013 08:28:05 +0200
+Subject: [PATCH 23/55] imx6dl: Set old RAM timings
+
+With the new RAM timings some DL modules would not boot.
+So we go back to the old.
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ .../phytec-pfla02/flash-header-phytec-pfla02dl.h   |   24 ++++++++++----------
+ 1 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+index 02b62cf..0f83bc9 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+@@ -77,18 +77,18 @@ wm 32 0x021b4800 0xa1380003
+ wm 32 0x021b0020 0x00005800
+ wm 32 0x021b0818 0x00011117
+ wm 32 0x021b4818 0x00011117
+-wm 32 0x021b083c 0x422E0234
+-wm 32 0x021b0840 0x0231022D
+-wm 32 0x021b483c 0x423A0244
+-wm 32 0x021b4840 0x023B022A
+-wm 32 0x021b0848 0x362F2F33
+-wm 32 0x021b4848 0x32302F36
+-wm 32 0x021b0850 0x2F2B3330
+-wm 32 0x021b4850 0x35233431
+-wm 32 0x021b080c 0x001A001A
+-wm 32 0x021b0810 0x00250029
+-wm 32 0x021b480c 0x00360032
+-wm 32 0x021b4810 0x003E003D
++wm 32 0x021b083c 0x422D0230
++wm 32 0x021b0840 0x022F022E
++wm 32 0x021b483c 0x4237023D
++wm 32 0x021b4840 0x02340224
++wm 32 0x021b0848 0x38333135
++wm 32 0x021b4848 0x36353338
++wm 32 0x021b0850 0x2E2E332C
++wm 32 0x021b4850 0x3727382F
++wm 32 0x021b080c 0x000C000D
++wm 32 0x021b0810 0x0018001A
++wm 32 0x021b480c 0x00270023
++wm 32 0x021b4810 0x002F002D
+ wm 32 0x021b08b8 0x00000800
+ wm 32 0x021b48b8 0x00000800
+ wm 32 0x021b001c 0x00000000
+-- 
+1.7.0.4
+

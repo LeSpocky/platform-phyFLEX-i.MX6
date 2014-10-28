@@ -1,0 +1,29 @@
+From b694ae08d3244d68d175910da26341ec82fb955e Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Tue, 13 Aug 2013 14:41:45 +0200
+Subject: [PATCH 09/55] pfla02: board: Add delay for RX lines
+
+For the DL we need a delay on the RX lines. Without the delay
+we loos all packages.
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/board.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index f9a8647..9eb87d4 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -66,7 +66,7 @@ static void mmd_write_reg(struct phy_device *dev, int device, int reg, int val)
+ 
+ static int ksz9031rn_phy_fixup(struct phy_device *dev)
+ {
+-	mmd_write_reg(dev, 2, 8, 0x038F);
++	mmd_write_reg(dev, 2, 8, 0x039F);
+ 
+ 	return 0;
+ }
+-- 
+1.7.0.4
+

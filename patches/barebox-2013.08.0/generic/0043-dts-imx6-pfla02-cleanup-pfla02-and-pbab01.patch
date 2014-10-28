@@ -1,0 +1,170 @@
+From 032390bb4fb061206c1bbef0041409385b542876 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Thu, 21 Nov 2013 09:11:45 +0100
+Subject: [PATCH 43/55] dts:imx6:pfla02: cleanup pfla02 and pbab01
+
+Cleanup the devicetree for pfla02 and pbab01.
+Move SPI-NOR flash partition definition to
+imx6qdl-phytec-pfla02.dtsi
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/dts/imx6dl-phytec-pfla02.dtsi  |   15 ------------
+ arch/arm/dts/imx6q-phytec-pfla02.dtsi   |   15 ------------
+ arch/arm/dts/imx6qdl-phytec-pbab01.dtsi |   20 ----------------
+ arch/arm/dts/imx6qdl-phytec-pfla02.dtsi |   38 +++++++++++++++++++++++++++++++
+ 4 files changed, 38 insertions(+), 50 deletions(-)
+
+diff --git a/arch/arm/dts/imx6dl-phytec-pfla02.dtsi b/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
+index 466e26d..6df322b 100644
+--- a/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
+@@ -25,21 +25,6 @@
+ 	status = "okay";
+ };
+ 
+-&flash {
+-        #address-cells = <1>;
+-        #size-cells = <1>;
+-
+-        partition@0 {
+-                label = "barebox";
+-                reg = <0x0 0x80000>;
+-        };
+-
+-        partition@1 {
+-                label = "barebox-environment";
+-                reg = <0x80000 0x10000>;
+-        };
+-};
+-
+ &iomuxc {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_hog>;
+diff --git a/arch/arm/dts/imx6q-phytec-pfla02.dtsi b/arch/arm/dts/imx6q-phytec-pfla02.dtsi
+index 3694ea5..8273473 100644
+--- a/arch/arm/dts/imx6q-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6q-phytec-pfla02.dtsi
+@@ -26,21 +26,6 @@
+ 	status = "okay";
+ };
+ 
+-&flash {
+-	#address-cells = <1>;
+-	#size-cells = <1>;
+-
+-	partition@0 {
+-		label = "barebox";
+-		reg = <0x0 0x80000>;
+-	};
+-
+-	partition@1 {
+-		label = "barebox-environment";
+-		reg = <0x80000 0x10000>;
+-	};
+-};
+-
+ &iomuxc {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_hog>;
+diff --git a/arch/arm/dts/imx6qdl-phytec-pbab01.dtsi b/arch/arm/dts/imx6qdl-phytec-pbab01.dtsi
+index 288ad61..157e130 100644
+--- a/arch/arm/dts/imx6qdl-phytec-pbab01.dtsi
++++ b/arch/arm/dts/imx6qdl-phytec-pbab01.dtsi
+@@ -9,30 +9,10 @@
+  * http://www.gnu.org/copyleft/gpl.html
+  */
+ 
+-/ {
+-	chosen {
+-		environment-spi {
+-			compatible = "barebox,environment";
+-			device-path = &flash, "partname:barebox-environment";
+-			status = "disabled";
+-		};
+-
+-		enviroment-mmc {
+-			compatible = "barebox,environment";
+-			device-path = &usdhc3, "partname:barebox-environment";
+-			status = "disabled";
+-		};
+-	};
+-};
+-
+ &fec {
+ 	status = "okay";
+ };
+ 
+-&ocotp1 {
+-	barebox,provide-mac-address = <&fec 0x620>;
+-};
+-
+ &uart1 {
+ 	status = "okay";
+ };
+diff --git a/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi b/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
+index ff9c6c8..9fc2064 100644
+--- a/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
+@@ -9,6 +9,24 @@
+  * http://www.gnu.org/copyleft/gpl.html
+  */
+ 
++
++/ {
++	chosen {
++		environment-spi {
++			compatible = "barebox,environment";
++			device-path = &flash, "partname:barebox-environment";
++			status = "disabled";
++		};
++
++		enviroment-mmc {
++			compatible = "barebox,environment";
++			device-path = &usdhc3, "partname:barebox-environment";
++			status = "disabled";
++		};
++	};
++};
++
++
+ &ecspi3 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_ecspi3_1>;
+@@ -23,6 +41,21 @@
+ 	};
+ };
+ 
++&flash {
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	partition@0 {
++		label = "barebox";
++		reg = <0x0 0x80000>;
++	};
++
++	partition@1 {
++		label = "barebox-environment";
++		reg = <0x80000 0x10000>;
++	};
++};
++
+ &fec {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_enet_3>;
+@@ -38,6 +71,11 @@
+ 	status = "okay";
+ };
+ 
++&ocotp1 {
++	barebox,provide-mac-address = <&fec 0x620>;
++};
++
++
+ &uart4 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_uart4_1>;
+-- 
+1.7.0.4
+

@@ -1,0 +1,138 @@
+From 3775d07add1431ee8c11eef1c6be9fa8ee7ba13e Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 23 Aug 2013 21:57:06 +0200
+Subject: [PATCH 13/55] pfla02: Add bootarg for cam and display
+
+Set csi interface type, cam typ and I2C cam address over booarg
+ - CSI0=<csi[X]_interface_type>,<csi[X]_cam_type>,<csi[X]_cam_address>
+ - CSI1=<csi[X]_interface_type>,<csi[X]_cam_type>,<csi[X]_cam_address>
+
+You can chose one of the displays in env/graphic/display and/or set the
+prime output to HDMI or LVDS.
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/env/bin/bootargs-cam |   17 +++++++++++++++++
+ .../boards/phytec-pfla02/env/bin/bootargs-display  |    9 +++++++++
+ arch/arm/boards/phytec-pfla02/env/boot/nand        |    4 +++-
+ arch/arm/boards/phytec-pfla02/env/boot/net         |    2 ++
+ arch/arm/boards/phytec-pfla02/env/boot/sd-ext3     |    5 ++++-
+ arch/arm/boards/phytec-pfla02/env/config-board     |    5 ++++-
+ arch/arm/boards/phytec-pfla02/env/video/display    |   11 +++++++++++
+ 7 files changed, 50 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/bin/bootargs-cam
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/bin/bootargs-display
+ create mode 100644 arch/arm/boards/phytec-pfla02/env/video/display
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/bin/bootargs-cam b/arch/arm/boards/phytec-pfla02/env/bin/bootargs-cam
+new file mode 100644
+index 0000000..38bcbaa
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/bin/bootargs-cam
+@@ -0,0 +1,17 @@
++#!/bin/sh
++
++#CSI0/1 interface mode. Please read "How_do_I_use_phyCAM_with_phyFLEX-i.MX6.pdf"
++#see /home/gstreamer_examples/How_do_I_use_phyCAM_with_phyFLEX-i.MX6.pdf 
++#===============================================================================
++CSI0=phyCAM-P,VM-011,0x48
++CSI1=phyCAM-P,VM-011,0x5d
++
++#VM-007-BW/COL / VM-010-BW/COL color typ, can be 'color' or 'mono' (def. color)
++#==============================================================================
++mt9v02x="mt9v022.sensor_type=color"
++
++#VM-011-BW/COL-x color typ, set 'Y'=mono, no exist = color (def. color)
++#======================================================================
++#mt0p031_typ="mt9p031.mono=Y"
++
++global.linux.bootargs.dyn.cam="board_mx6q_phyflex.csi0=$CSI0 board_mx6q_phyflex.csi1=$CSI1 $mt0p031_typ $mt9v02x"
+diff --git a/arch/arm/boards/phytec-pfla02/env/bin/bootargs-display b/arch/arm/boards/phytec-pfla02/env/bin/bootargs-display
+new file mode 100644
+index 0000000..7d6d375
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/bin/bootargs-display
+@@ -0,0 +1,9 @@
++#!/bin/sh
++
++. /env/video/display
++
++if [ "$prim_out" = hdmi ]; then
++	global.linux.bootargs.dyn.display="video=mxcfb1:$display prim_hdmi=yes"
++else
++	global.linux.bootargs.dyn.display="video=mxcfb0:$display"
++fi
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/nand b/arch/arm/boards/phytec-pfla02/env/boot/nand
+index f080026..00db262 100644
+--- a/arch/arm/boards/phytec-pfla02/env/boot/nand
++++ b/arch/arm/boards/phytec-pfla02/env/boot/nand
+@@ -9,5 +9,7 @@ global.bootm.image="/dev/nand0.kernel.bb"
+ #global.bootm.oftree="/env/oftree"
+ global.bootm.oftree="none"
+ bootargs-ip
+-global.linux.bootargs.dyn.root="root=ubi0:root ubi.mtd=6 rootfstype=ubifs"
++bootargs-cam
++bootargs-display
++global.linux.bootargs.dyn.root="root=ubi0:root ubi.mtd=4 rootfstype=ubifs"
+ 
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/net b/arch/arm/boards/phytec-pfla02/env/boot/net
+index cf16703..0572075 100644
+--- a/arch/arm/boards/phytec-pfla02/env/boot/net
++++ b/arch/arm/boards/phytec-pfla02/env/boot/net
+@@ -12,4 +12,6 @@ global.bootm.image="${path}/linuximage"
+ global.bootm.oftree="none"
+ nfsroot="/home/${global.user}/nfsroot/${global.hostname}"
+ bootargs-ip
++bootargs-cam
++bootargs-display
+ global.linux.bootargs.dyn.root="root=/dev/nfs nfsroot=$nfsroot,v3,tcp"
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3 b/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
+index 7e77e51..8d5679c 100644
+--- a/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
++++ b/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
+@@ -5,7 +5,10 @@ if [ "$1" = menu ]; then
+         exit
+ fi
+ 
+-global.bootm.image="/mnt/kernel/zImage"
++global.bootm.image="/mnt/mmc/linuximage"
+ #global.bootm.oftree="/boot/oftree"
+ global.bootm.oftree="none"
++bootarg-ip
++bootargs-cam
++bootargs-display
+ global.linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootfstype=ext3 rootwait"
+diff --git a/arch/arm/boards/phytec-pfla02/env/config-board b/arch/arm/boards/phytec-pfla02/env/config-board
+index f2bfa54..13ed38f 100644
+--- a/arch/arm/boards/phytec-pfla02/env/config-board
++++ b/arch/arm/boards/phytec-pfla02/env/config-board
+@@ -3,5 +3,8 @@
+ # board defaults, do not change in running system. Change /env/config
+ # instead
+ 
++global linux.bootargs.dyn.display
++global linux.bootargs.dyn.cam
++
+ global.hostname=phyFLEX-i.MX6
+-global.linux.bootargs.base="console=ttymxc3,115200"
++global.linux.bootargs.base="console=ttymxc3,115200 vt.global_cursor_default=0 consoleblank=0"
+diff --git a/arch/arm/boards/phytec-pfla02/env/video/display b/arch/arm/boards/phytec-pfla02/env/video/display
+new file mode 100644
+index 0000000..8a8620f
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/env/video/display
+@@ -0,0 +1,11 @@
++#!/bin/sh
++
++# Set prim out put (hdmi/ldb)
++prim_out=ldb
++
++#Displays
++#display=Primeview-PD050VL1
++#display=Primeview-PD035VL1
++#display=Primeview-PD104SLF
++#display=Primeview-PM070WL4
++display=ETM0700G0DH6
+-- 
+1.7.0.4
+

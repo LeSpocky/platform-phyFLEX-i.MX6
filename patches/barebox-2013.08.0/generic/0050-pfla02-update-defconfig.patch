@@ -1,0 +1,37 @@
+From ebe2b8945521b7e0d9729aa4e80df5f5c9c57514 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 17 Jan 2014 10:46:13 +0100
+Subject: [PATCH 50/55] pfla02: update defconfig
+
+Set version to PD13.2.2
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/configs/pfal02_defconfig |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/configs/pfal02_defconfig b/arch/arm/configs/pfal02_defconfig
+index 2427b08..08bfbd2 100644
+--- a/arch/arm/configs/pfal02_defconfig
++++ b/arch/arm/configs/pfal02_defconfig
+@@ -102,7 +102,7 @@ CONFIG_BAREBOX_UPDATE=y
+ #
+ # General Settings
+ #
+-CONFIG_LOCALVERSION="PD13.2.2_EA4"
++CONFIG_LOCALVERSION="-PD13.2.2"
+ CONFIG_LOCALVERSION_AUTO=y
+ CONFIG_BANNER=y
+ CONFIG_MEMINFO=y
+@@ -336,7 +336,7 @@ CONFIG_OFTREE_MEM_GENERIC=y
+ CONFIG_DTC=y
+ CONFIG_OFDEVICE=y
+ CONFIG_OF_NET=y
+-# CONFIG_OF_BAREBOX_DRIVERS is not set
++CONFIG_OF_BAREBOX_DRIVERS=y
+ 
+ #
+ # serial drivers
+-- 
+1.7.0.4
+

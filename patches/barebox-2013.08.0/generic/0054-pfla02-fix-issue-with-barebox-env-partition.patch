@@ -1,0 +1,86 @@
+From 05ff97829a4b708fcdffc5436a7ff5aa53c8dc61 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Mon, 24 Feb 2014 14:47:21 +0100
+Subject: [PATCH 54/55] pfla02: fix issue with barebox env partition
+
+Remove not needed code for barebox env and self partition.
+
+Fix typo in mmc-environment name.
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/board.c       |    7 -------
+ arch/arm/dts/imx6dl-phytec-pbab01-512MB.dts |    5 -----
+ arch/arm/dts/imx6dl-phytec-pbab01.dts       |    5 -----
+ arch/arm/dts/imx6qdl-phytec-pfla02.dtsi     |    2 +-
+ 4 files changed, 1 insertions(+), 18 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index a02c8b3..af3a78f 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -160,18 +160,11 @@ static int phytec_pfla02_init(void)
+ 		break;
+         case BOOTSOURCE_MMC:
+ 		of_device_enable_path("/chosen/environment-mmc");
+-		devfs_add_partition("mmc2", 0, SZ_512K, 
+-					DEVFS_PARTITION_FIXED, "self0");
+-		devfs_add_partition("mmc2", SZ_512K, SZ_64K,
+-					DEVFS_PARTITION_FIXED, "env0");
+ 		envdev = "MMC";
+                 break;
+         default:
+         case BOOTSOURCE_SPI:
+                 of_device_enable_path("/chosen/environment-spi");
+-		devfs_add_partition("m25p0", 0, SZ_512K, DEVFS_PARTITION_FIXED, "self0");
+-		devfs_add_partition("m25p0", SZ_512K, SZ_64K,
+-			DEVFS_PARTITION_FIXED, "env0");
+ 		envdev = "SPI-NOR";
+                 break;
+         }
+diff --git a/arch/arm/dts/imx6dl-phytec-pbab01-512MB.dts b/arch/arm/dts/imx6dl-phytec-pbab01-512MB.dts
+index 4891694..e29a480 100644
+--- a/arch/arm/dts/imx6dl-phytec-pbab01-512MB.dts
++++ b/arch/arm/dts/imx6dl-phytec-pbab01-512MB.dts
+@@ -20,10 +20,5 @@
+ 
+ 	chosen {
+ 		linux,stdout-path = &uart4;
+-
+-		environment@0 {
+-                        compatible = "barebox,environment";
+-                        device-path = &flash, "partname:barebox-environment";
+-                };
+ 	};
+ };
+diff --git a/arch/arm/dts/imx6dl-phytec-pbab01.dts b/arch/arm/dts/imx6dl-phytec-pbab01.dts
+index c15027a..4b77838 100644
+--- a/arch/arm/dts/imx6dl-phytec-pbab01.dts
++++ b/arch/arm/dts/imx6dl-phytec-pbab01.dts
+@@ -20,10 +20,5 @@
+ 
+ 	chosen {
+ 		linux,stdout-path = &uart4;
+-
+-		environment@0 {
+-                        compatible = "barebox,environment";
+-                        device-path = &flash, "partname:barebox-environment";
+-                };
+ 	};
+ };
+diff --git a/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi b/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
+index 9fc2064..cbb3edc 100644
+--- a/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
+@@ -18,7 +18,7 @@
+ 			status = "disabled";
+ 		};
+ 
+-		enviroment-mmc {
++		environment-mmc {
+ 			compatible = "barebox,environment";
+ 			device-path = &usdhc3, "partname:barebox-environment";
+ 			status = "disabled";
+-- 
+1.7.0.4
+

@@ -1,0 +1,803 @@
+From 34f7d03a45d05e5390c62f239980560124f44cb3 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Tue, 6 Aug 2013 11:40:39 +0200
+Subject: [PATCH 02/55] pfla02: Add support for duallite and single core
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/Makefile             |    9 +-
+ arch/arm/boards/phytec-pfla02/board.c              |   26 +++++-
+ .../flash-header-phytec-pfla02dl-1gib.imxcfg       |    6 +
+ .../phytec-pfla02/flash-header-phytec-pfla02dl.h   |  103 ++++++++++++++++++++
+ .../flash-header-phytec-pfla02s-512mb.imxcfg       |    6 +
+ arch/arm/boards/phytec-pfla02/lowlevel.c           |   32 ++++++
+ arch/arm/dts/Makefile                              |    4 +-
+ arch/arm/dts/imx6dl-phytec-pbab01.dts              |   29 ++++++
+ arch/arm/dts/imx6dl-phytec-pfla02.dtsi             |   64 ++++++++++++
+ arch/arm/dts/imx6q-phytec-pbab01.dts               |   23 +----
+ arch/arm/dts/imx6q-phytec-pfla02.dtsi              |   94 +++---------------
+ arch/arm/dts/imx6qdl-phytec-pbab01.dtsi            |   43 ++++++++
+ arch/arm/dts/imx6qdl-phytec-pfla02.dtsi            |   62 ++++++++++++
+ arch/arm/dts/imx6s-phytec-pbab01.dts               |   25 +++++
+ arch/arm/dts/imx6s-phytec-pfla02.dtsi              |   44 +++++++++
+ arch/arm/mach-imx/Kconfig                          |    2 +-
+ images/Makefile.imx                                |   12 +++
+ 17 files changed, 478 insertions(+), 106 deletions(-)
+ create mode 100644 arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl-1gib.imxcfg
+ create mode 100644 arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+ create mode 100644 arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02s-512mb.imxcfg
+ create mode 100644 arch/arm/dts/imx6dl-phytec-pbab01.dts
+ create mode 100644 arch/arm/dts/imx6dl-phytec-pfla02.dtsi
+ create mode 100644 arch/arm/dts/imx6qdl-phytec-pbab01.dtsi
+ create mode 100644 arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
+ create mode 100644 arch/arm/dts/imx6s-phytec-pbab01.dts
+ create mode 100644 arch/arm/dts/imx6s-phytec-pfla02.dtsi
+
+diff --git a/arch/arm/boards/phytec-pfla02/Makefile b/arch/arm/boards/phytec-pfla02/Makefile
+index f50e5bb..160bea1 100644
+--- a/arch/arm/boards/phytec-pfla02/Makefile
++++ b/arch/arm/boards/phytec-pfla02/Makefile
+@@ -1,8 +1,11 @@
+ obj-y += board.o
+ obj-y += flash-header-phytec-pfla02-1gib.dcd.o flash-header-phytec-pfla02-2gib.dcd.o
+-obj-y += flash-header-phytec-pfla02-4gib.dcd.o
++obj-y += flash-header-phytec-pfla02-4gib.dcd.o flash-header-phytec-pfla02dl-1gib.dcd.o
++obj-y += flash-header-phytec-pfla02s-512mb.dcd.o
+ extra-y += flash-header-phytec-pfla02-1gib.dcd.S flash-header-phytec-pfla02-2gib.dcd.S
+-extra-y += flash-header-phytec-pfla02-4gib.dcd.S
++extra-y += flash-header-phytec-pfla02-4gib.dcd.S flash-header-phytec-pfla02dl-1gib.dcd.S
++extra-y += flash-header-phytec-pfla02s-512mb.dcd.S
+ extra-y += flash-header-phytec-pfla02-1gib.dcd flash-header-phytec-pfla02-2gib.dcd
+-extra-y += flash-header-phytec-pfla02-4gib.dcd
++extra-y += flash-header-phytec-pfla02-4gib.dcd flash-header-phytec-pfla02dl-1gib.dcd
++extra-y += flash-header-phytec-pfla02s-512mb.dcd
+ lwl-y += lowlevel.o
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index e9bd168..4b1c878 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -36,10 +36,32 @@ static int eth_phy_reset(void)
+ 	return 0;
+ }
+ 
++extern char flash_header_phytec_pfla02_1gib_start[];
++extern char flash_header_phytec_pfla02_1gib_end[];
++
++extern char flash_header_phytec_pfla02dl_1gib_start[];
++extern char flash_header_phytec_pfla02dl_1gib_end[];
++
++extern char flash_header_phytec_pfla02s_512mb_start[];
++extern char flash_header_phytec_pfla02s_512mb_end[];
++
+ static int phytec_pfla02_init(void)
+ {
+-	if (!of_machine_is_compatible("phytec,imx6q-pfla02"))
++	void *flash_header_start;
++	void *flash_header_end;
++
++	if (of_machine_is_compatible("phytec,imx6q-pfla02")) {
++		flash_header_start = (void *)flash_header_phytec_pfla02_1gib_start;
++		flash_header_end = (void *)flash_header_phytec_pfla02_1gib_end;
++	} else if (of_machine_is_compatible("phytec,imx6dl-pfla02")) {
++		flash_header_start = (void *)flash_header_phytec_pfla02dl_1gib_start;
++		flash_header_end = (void *)flash_header_phytec_pfla02dl_1gib_end;
++	} else if (of_machine_is_compatible("phytec,imx6s-pfla02")) {
++		flash_header_start = (void *)flash_header_phytec_pfla02s_512mb_start;
++		flash_header_end = (void *)flash_header_phytec_pfla02s_512mb_end;		
++	} else {
+ 		return 0;
++	}
+ 
+ 	eth_phy_reset();
+ 
+@@ -49,7 +71,7 @@ device_initcall(phytec_pfla02_init);
+ 
+ static int phytec_pfla02_core_init(void)
+ {
+-	if (!of_machine_is_compatible("phytec,imx6q-pfla02"))
++	if (!of_machine_is_compatible("phytec,imx6x-pbab01"))
+ 		return 0;
+ 
+ 	imx6_init_lowlevel();
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl-1gib.imxcfg b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl-1gib.imxcfg
+new file mode 100644
+index 0000000..e5a7292
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl-1gib.imxcfg
+@@ -0,0 +1,6 @@
++
++#define SETUP_S_DL_512MB_1GB		\
++	wm 32 0x021b0040 0x00000017;	\
++	wm 32 0x021b0000 0xc21a0000
++
++#include "flash-header-phytec-pfla02dl.h"
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+new file mode 100644
+index 0000000..68e3bba
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+@@ -0,0 +1,103 @@
++soc imx6
++loadaddr 0x20000000
++dcdofs 0x400
++
++wm 32 0x020e04bc 0x00000030
++wm 32 0x020e04c0 0x00000030
++wm 32 0x020e04c4 0x00000030
++wm 32 0x020e04c8 0x00000030
++wm 32 0x020e04cc 0x00000030
++wm 32 0x020e04d0 0x00000030
++wm 32 0x020e04d4 0x00000030
++wm 32 0x020e04d8 0x00000030
++wm 32 0x020e0470 0x00020030
++wm 32 0x020e0474 0x00020030
++wm 32 0x020e0478 0x00020030
++wm 32 0x020e047c 0x00020030
++wm 32 0x020e0480 0x00020030
++wm 32 0x020e0484 0x00020030
++wm 32 0x020e0488 0x00020030
++wm 32 0x020e048c 0x00020030
++wm 32 0x020e0464 0x00020030
++wm 32 0x020e0490 0x00020030
++wm 32 0x020e04ac 0x00020030
++wm 32 0x020e04b0 0x00020030
++wm 32 0x020e0494 0x00020030
++wm 32 0x020e04a4 0x00003000
++wm 32 0x020e04a8 0x00003000
++wm 32 0x020e04a0 0x00000000
++wm 32 0x020e04b4 0x00003030
++wm 32 0x020e04b8 0x00003030
++wm 32 0x020e0764 0x00000030
++wm 32 0x020e0770 0x00000030
++wm 32 0x020e0778 0x00000030
++wm 32 0x020e077c 0x00000030
++wm 32 0x020e0780 0x00000030
++wm 32 0x020e0784 0x00000030
++wm 32 0x020e078c 0x00000030
++wm 32 0x020e0748 0x00000030
++wm 32 0x020e074c 0x00000030
++wm 32 0x020e0750 0x00020000
++wm 32 0x020e0754 0x00000000
++wm 32 0x020e0760 0x00020000
++wm 32 0x020e076c 0x00000030
++wm 32 0x020e0774 0x000c0000
++wm 32 0x021b081c 0x33333333
++wm 32 0x021b0820 0x33333333
++wm 32 0x021b0824 0x33333333
++wm 32 0x021b0828 0x33333333
++wm 32 0x021b481c 0x33333333
++wm 32 0x021b4820 0x33333333
++wm 32 0x021b4824 0x33333333
++wm 32 0x021b4828 0x33333333
++wm 32 0x021b0018 0x00081740
++wm 32 0x021b001c 0x00008000
++wm 32 0x021b000c 0x555a7975
++wm 32 0x021b0010 0xff538e64
++wm 32 0x021b0014 0x01ff00db
++wm 32 0x021b002c 0x000026d2
++wm 32 0x021b0030 0x005b0e21
++wm 32 0x021b0008 0x09444040
++wm 32 0x021b0004 0x00025576
++
++SETUP_S_DL_512MB_1GB
++
++wm 32 0x021b001c 0x04088032
++wm 32 0x021b001c 0x0408803a
++wm 32 0x021b001c 0x00008033
++wm 32 0x021b001c 0x0000803b
++wm 32 0x021b001c 0x00428031
++wm 32 0x021b001c 0x00428039
++wm 32 0x021b001c 0x09408030
++wm 32 0x021b001c 0x09408038
++wm 32 0x021b001c 0x04008040
++wm 32 0x021b001c 0x04008048
++wm 32 0x021b0800 0xa1380003
++wm 32 0x021b4800 0xa1380003
++wm 32 0x021b0020 0x00005800
++wm 32 0x021b0818 0x00022227
++wm 32 0x021b4818 0x00022227
++wm 32 0x021b083c 0x422E0234
++wm 32 0x021b0840 0x0231022D
++wm 32 0x021b483c 0x423A0244
++wm 32 0x021b4840 0x023B022A
++wm 32 0x021b0848 0x362F2F33
++wm 32 0x021b4848 0x32302F36
++wm 32 0x021b0850 0x2F2B3330
++wm 32 0x021b4850 0x35233431
++wm 32 0x021b080c 0x001A001A
++wm 32 0x021b0810 0x00250029
++wm 32 0x021b480c 0x00360032
++wm 32 0x021b4810 0x003E003D
++wm 32 0x021b08b8 0x00000800
++wm 32 0x021b48b8 0x00000800
++wm 32 0x021b001c 0x00000000
++wm 32 0x021b0404 0x00011006
++wm 32 0x020C4068 0x00C03F3F
++wm 32 0x020C406c 0x0030FC03
++wm 32 0x020C4070 0x0FFFC000
++wm 32 0x020C4074 0x3FF00000
++wm 32 0x020C4078 0x00FFF300
++wm 32 0x020C407c 0x0F0000C3
++wm 32 0x020C4080 0x000003FF
++wm 32 0x020c4060 0x000000fb
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02s-512mb.imxcfg b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02s-512mb.imxcfg
+new file mode 100644
+index 0000000..3116e36
+--- /dev/null
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02s-512mb.imxcfg
+@@ -0,0 +1,6 @@
++
++#define SETUP_S_DL_512MB_1GB		\
++	wm 32 0x021b0040 0x00000017;	\
++	wm 32 0x021b0000 0x83190000
++
++#include "flash-header-phytec-pfla02dl.h"
+diff --git a/arch/arm/boards/phytec-pfla02/lowlevel.c b/arch/arm/boards/phytec-pfla02/lowlevel.c
+index ac1f89e..e2dbc95 100644
+--- a/arch/arm/boards/phytec-pfla02/lowlevel.c
++++ b/arch/arm/boards/phytec-pfla02/lowlevel.c
+@@ -25,6 +25,8 @@
+ #include <mach/imx6.h>
+ 
+ extern char __dtb_imx6q_phytec_pbab01_start[];
++extern char __dtb_imx6dl_phytec_pbab01_start[];
++extern char __dtb_imx6s_phytec_pbab01_start[];
+ 
+ ENTRY_FUNCTION(start_phytec_pbab01_1gib)(void)
+ {
+@@ -70,3 +72,33 @@ ENTRY_FUNCTION(start_phytec_pbab01_4gib)(void)
+ 
+ 	barebox_arm_entry(0x10000000, 0xEFFFFFF8, fdt);
+ }
++
++ENTRY_FUNCTION(start_phytec_pbab01dl_1gib)(void)
++{
++        uint32_t fdt;
++
++        __barebox_arm_head();
++
++        arm_cpu_lowlevel_init();
++
++        arm_setup_stack(0x00920000 - 8);
++
++	fdt = (uint32_t)__dtb_imx6dl_phytec_pbab01_start - get_runtime_offset();
++
++        barebox_arm_entry(0x10000000, SZ_1G, fdt);
++}
++
++ENTRY_FUNCTION(start_phytec_pbab01s_512mb)(void)
++{
++	uint32_t fdt;
++
++	__barebox_arm_head();
++
++	arm_cpu_lowlevel_init();
++
++	arm_setup_stack(0x00920000 - 8);
++
++	fdt = (uint32_t)__dtb_imx6s_phytec_pbab01_start - get_runtime_offset();
++
++	barebox_arm_entry(0x10000000, SZ_512M, fdt);
++}
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 77645ff..9889a75 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -7,6 +7,8 @@ dtb-$(CONFIG_ARCH_IMX6) += imx6q-gk802.dtb \
+ 	imx6q-sabresd.dtb \
+ 	imx6dl-mba6x.dtb \
+ 	imx6q-mba6x.dtb \
++	imx6s-phytec-pbab01.dtb \
++	imx6dl-phytec-pbab01.dtb \
+ 	imx6q-phytec-pbab01.dtb
+ dtb-$(CONFIG_ARCH_MVEBU) += dove-cubox.dtb
+ 
+@@ -16,7 +18,7 @@ obj-$(CONFIG_BUILTIN_DTB) += $(BUILTIN_DTB).dtb.o
+ pbl-$(CONFIG_MACH_EFIKA_MX_SMARTBOOK) += imx51-genesi-efika-sb.dtb.o
+ pbl-$(CONFIG_MACH_FREESCALE_MX51_PDK) += imx51-babbage.dtb.o
+ pbl-$(CONFIG_MACH_FREESCALE_MX53_LOCO) += imx53-qsb.dtb.o
+-pbl-$(CONFIG_MACH_PHYTEC_PFLA02) += imx6q-phytec-pbab01.dtb.o
++pbl-$(CONFIG_MACH_PHYTEC_PFLA02) += imx6s-phytec-pbab01.dtb.o imx6dl-phytec-pbab01.dtb.o imx6q-phytec-pbab01.dtb.o
+ pbl-$(CONFIG_MACH_REALQ7) += imx6q-dmo-realq7.dtb.o
+ pbl-$(CONFIG_MACH_GK802) += imx6q-gk802.dtb.o
+ pbl-$(CONFIG_MACH_TQMA6X) += imx6dl-mba6x.dtb.o imx6q-mba6x.dtb.o
+diff --git a/arch/arm/dts/imx6dl-phytec-pbab01.dts b/arch/arm/dts/imx6dl-phytec-pbab01.dts
+new file mode 100644
+index 0000000..c15027a
+--- /dev/null
++++ b/arch/arm/dts/imx6dl-phytec-pbab01.dts
+@@ -0,0 +1,29 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/dts-v1/;
++
++#include "imx6dl-phytec-pfla02.dtsi"
++#include "imx6qdl-phytec-pbab01.dtsi"
++
++/ {
++	model = "Phytec phyFLEX-i.MX6 Duallite Carrier-Board";
++	compatible = "phytec,imx6x-pbab01", "phytec,imx6dl-pfla02", "fsl,imx6dl";
++
++	chosen {
++		linux,stdout-path = &uart4;
++
++		environment@0 {
++                        compatible = "barebox,environment";
++                        device-path = &flash, "partname:barebox-environment";
++                };
++	};
++};
+diff --git a/arch/arm/dts/imx6dl-phytec-pfla02.dtsi b/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
+new file mode 100644
+index 0000000..768fcdd
+--- /dev/null
++++ b/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
+@@ -0,0 +1,64 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++#include "imx6dl.dtsi"
++#include "imx6qdl-phytec-pfla02.dtsi"
++
++/ {
++	model = "Phytec phyFLEX-i.MX6 Dual Lite";
++	compatible = "phytec,imx6dl-pfla02", "fsl,imx6dl";
++
++	memory {
++		reg = <0x10000000 0x40000000>;
++	};
++};
++
++&ecspi3 {
++	status = "okay";
++};
++
++&flash {
++        #address-cells = <1>;
++        #size-cells = <1>;
++
++        partition@0 {
++                label = "barebox";
++                reg = <0x0 0x80000>;
++        };
++
++        partition@1 {
++                label = "barebox-environment";
++                reg = <0x80000 0x10000>;
++        };
++};
++
++&iomuxc {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hog>;
++
++	hog {  
++		pinctrl_hog: hoggrp {
++			fsl,pins = <
++				MX6DL_PAD_EIM_D23__GPIO3_IO23    0x80000000
++				MX6DL_PAD_DISP0_DAT3__GPIO4_IO24 0x80000000 /* SPI NOR chipselect */
++			>;
++		};
++	};
++
++	pfla02 {
++		pinctrl_usdhc3_pfla02: usdhc3grp-pfla02 {
++			fsl,pins = <
++				MX6DL_PAD_ENET_RXD0__GPIO1_IO27  0x80000000
++				MX6DL_PAD_ENET_TXD1__GPIO1_IO29  0x80000000
++			>;
++		};
++	};
++};
+diff --git a/arch/arm/dts/imx6q-phytec-pbab01.dts b/arch/arm/dts/imx6q-phytec-pbab01.dts
+index b35b2e5..26046e0 100644
+--- a/arch/arm/dts/imx6q-phytec-pbab01.dts
++++ b/arch/arm/dts/imx6q-phytec-pbab01.dts
+@@ -11,10 +11,11 @@
+ 
+ /dts-v1/;
+ #include "imx6q-phytec-pfla02.dtsi"
++#include "imx6qdl-phytec-pbab01.dtsi"
+ 
+ / {
+ 	model = "Phytec phyFLEX-i.MX6 Quad Carrier-Board";
+-	compatible = "phytec,imx6q-pbab01", "phytec,imx6q-pfla02", "fsl,imx6q";
++	compatible = "phytec,imx6x-pbab01", "phytec,imx6q-pfla02", "fsl,imx6q";
+ 
+ 	chosen {
+ 		linux,stdout-path = &uart4;
+@@ -25,23 +26,3 @@
+ 		};
+ 	};
+ };
+-
+-&fec {
+-	status = "okay";
+-};
+-
+-&uart1 {
+-	status = "okay";
+-};
+-
+-&uart4 {
+-	status = "okay";
+-};
+-
+-&usdhc2 {
+-	status = "okay";
+-};
+-
+-&usdhc3 {
+-	status = "okay";
+-};
+diff --git a/arch/arm/dts/imx6q-phytec-pfla02.dtsi b/arch/arm/dts/imx6q-phytec-pfla02.dtsi
+index 8051418..ee943dd 100644
+--- a/arch/arm/dts/imx6q-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6q-phytec-pfla02.dtsi
+@@ -10,9 +10,11 @@
+  */
+ 
+ #include "imx6q.dtsi"
++#include "imx6qdl-phytec-pfla02.dtsi"
++
+ 
+ / {
+-	model = "Phytec phyFLEX-i.MX6 Ouad";
++	model = "Phytec phyFLEX-i.MX6 Quad";
+ 	compatible = "phytec,imx6q-pfla02", "fsl,imx6q";
+ 
+ 	memory {
+@@ -21,16 +23,21 @@
+ };
+ 
+ &ecspi3 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_ecspi3_1>;
+ 	status = "okay";
+-	fsl,spi-num-chipselects = <1>;
+-	cs-gpios = <&gpio4 24 0>;
++};
++
++&flash {
++	#address-cells = <1>;
++	#size-cells = <1>;
+ 
+-	flash: m25p80@0 {
+-		compatible = "m25p80";
+-		spi-max-frequency = <20000000>;
+-		reg = <0>;
++	partition@0 {
++		label = "barebox";
++		reg = <0x0 0x80000>;
++	};
++
++	partition@1 {
++		label = "barebox-environment";
++		reg = <0x80000 0x10000>;
+ 	};
+ };
+ 
+@@ -56,72 +63,3 @@
+ 		};
+ 	};
+ };
+-
+-&fec {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_enet_3>;
+-	phy-mode = "rgmii";
+-	phy-reset-gpios = <&gpio3 23 0>;
+-	status = "disabled";
+-};
+-
+-&flash {
+-	#address-cells = <1>;
+-	#size-cells = <1>;
+-
+-	partition@0 {
+-		label = "barebox";
+-		reg = <0x0 0x80000>;
+-	};
+-
+-	partition@1 {
+-		label = "barebox-environment";
+-		reg = <0x80000 0x10000>;
+-	};
+-};
+-
+-&gpmi {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_gpmi_nand_1>;
+-	nand-on-flash-bbt;
+-	status = "okay";
+-	#address-cells = <1>;
+-	#size-cells = <1>;
+-
+-	partition@0 {
+-		label = "barebox";
+-		reg = <0x0 0x200000>;
+-	};
+-
+-	partition@1 {
+-		label = "ubi";
+-		reg = <0x200000 0x3fe00000>;
+-	};
+-};
+-
+-&ocotp1 {
+-	barebox,provide-mac-address = <&fec 0x620>;
+-};
+-
+-&uart4 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_uart4_1>;
+-	status = "disabled";
+-};
+-
+-&usdhc2 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_usdhc2_2>;
+-	cd-gpios = <&gpio1 4 0>;
+-	wp-gpios = <&gpio1 2 0>;
+-	status = "disabled";
+-};
+-
+-&usdhc3 {
+-        pinctrl-names = "default";
+-        pinctrl-0 = <&pinctrl_usdhc3_2
+-		     &pinctrl_usdhc3_pfla02>;
+-        cd-gpios = <&gpio1 27 0>;
+-        wp-gpios = <&gpio1 29 0>;
+-        status = "disabled";
+-};
+diff --git a/arch/arm/dts/imx6qdl-phytec-pbab01.dtsi b/arch/arm/dts/imx6qdl-phytec-pbab01.dtsi
+new file mode 100644
+index 0000000..ed43d15
+--- /dev/null
++++ b/arch/arm/dts/imx6qdl-phytec-pbab01.dtsi
+@@ -0,0 +1,43 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/ {
++	chosen {
++		environment@0 {
++			compatible = "barebox,environment";
++			device-path = &flash, "partname:barebox-environment";
++		};
++	};
++};
++
++&fec {
++	status = "okay";
++};
++
++&ocotp1 {
++	barebox,provide-mac-address = <&fec 0x620>;
++};
++
++&uart1 {
++	status = "okay";
++};
++
++&uart4 {
++	status = "okay";
++};
++
++&usdhc2 {
++	status = "okay";
++};
++
++&usdhc3 {
++	status = "okay";
++};
+diff --git a/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi b/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
+new file mode 100644
+index 0000000..e800e8f
+--- /dev/null
++++ b/arch/arm/dts/imx6qdl-phytec-pfla02.dtsi
+@@ -0,0 +1,62 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++&ecspi3 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ecspi3_1>;
++	status = "disabled";
++	fsl,spi-num-chipselects = <1>;
++	cs-gpios = <&gpio4 24 0>;
++
++	flash: m25p80@0 {
++		compatible = "m25p80";
++		spi-max-frequency = <20000000>;
++		reg = <0>;
++	};
++};
++
++&fec {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_enet_3>;
++	phy-mode = "rgmii";
++	phy-reset-gpios = <&gpio3 23 0>;
++	status = "disabled";
++};
++
++&gpmi {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_gpmi_nand_1>;
++	nand-on-flash-bbt;
++	status = "okay";
++};
++
++&uart4 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart4_1>;
++	status = "disabled";
++};
++
++&usdhc2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usdhc2_2>;
++	cd-gpios = <&gpio1 4 0>;
++	wp-gpios = <&gpio1 2 0>;
++	status = "disabled";
++};
++
++&usdhc3 {
++        pinctrl-names = "default";
++        pinctrl-0 = <&pinctrl_usdhc3_2
++		     &pinctrl_usdhc3_pfla02>;
++        cd-gpios = <&gpio1 27 0>;
++        wp-gpios = <&gpio1 29 0>;
++        status = "disabled";
++};
+diff --git a/arch/arm/dts/imx6s-phytec-pbab01.dts b/arch/arm/dts/imx6s-phytec-pbab01.dts
+new file mode 100644
+index 0000000..95841de
+--- /dev/null
++++ b/arch/arm/dts/imx6s-phytec-pbab01.dts
+@@ -0,0 +1,25 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/dts-v1/;
++
++#include "imx6s-phytec-pfla02.dtsi"
++#include "imx6qdl-phytec-pbab01.dtsi"
++
++/ {
++	model = "Phytec phyFLEX-i.MX6 Single Carrier-Board";
++	compatible = "phytec,imx6x-pbab01", "phytec,imx6s-pfla02", "fsl,imx6dl";
++
++	chosen {
++		linux,stdout-path = &uart4;
++
++	};
++};
+diff --git a/arch/arm/dts/imx6s-phytec-pfla02.dtsi b/arch/arm/dts/imx6s-phytec-pfla02.dtsi
+new file mode 100644
+index 0000000..7feb543
+--- /dev/null
++++ b/arch/arm/dts/imx6s-phytec-pfla02.dtsi
+@@ -0,0 +1,44 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++#include "imx6dl.dtsi"
++#include "imx6qdl-phytec-pfla02.dtsi"
++
++/ {
++	model = "Phytec phyFLEX-i.MX6 Single";
++	compatible = "phytec,imx6s-pfla02", "fsl,imx6dl";
++
++	memory {
++		reg = <0x10000000 0x20000000>;
++	};
++};
++
++&iomuxc {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hog>;
++
++	hog {  
++		pinctrl_hog: hoggrp {
++			fsl,pins = <
++				MX6DL_PAD_EIM_D23__GPIO3_IO23    0x80000000
++			>;
++		};
++	};
++
++	pfla02 {
++		pinctrl_usdhc3_pfla02: usdhc3grp-pfla02 {
++			fsl,pins = <
++				MX6DL_PAD_ENET_RXD0__GPIO1_IO27  0x80000000
++				MX6DL_PAD_ENET_TXD1__GPIO1_IO29  0x80000000
++			>;
++		};
++	};
++};
+diff --git a/arch/arm/mach-imx/Kconfig b/arch/arm/mach-imx/Kconfig
+index e087e11..b1a539a 100644
+--- a/arch/arm/mach-imx/Kconfig
++++ b/arch/arm/mach-imx/Kconfig
+@@ -228,7 +228,7 @@ config MACH_FREESCALE_MX53_LOCO
+ 	select ARCH_IMX53
+ 
+ config MACH_PHYTEC_PFLA02
+-	bool "Phytec phyFLEX-i.MX6 Ouad"
++	bool "Phytec phyFLEX-i.MX6"
+ 	select ARCH_IMX6
+ 
+ config MACH_REALQ7
+diff --git a/images/Makefile.imx b/images/Makefile.imx
+index b90a6d3..cd6b622 100644
+--- a/images/Makefile.imx
++++ b/images/Makefile.imx
+@@ -71,3 +71,15 @@ CFG_start_phytec_pbab01_1gib.pblx.imximg = $(board)/phytec-pfla02/flash-header-p
+ imximage-$(CONFIG_MACH_PHYTEC_PFLA02) += start_phytec_pbab01_1gib.pblx.imximg
+ FILE_barebox-phytec-pbab01-1gib.img = start_phytec_pbab01_1gib.pblx.imximg
+ image-$(CONFIG_MACH_PHYTEC_PFLA02) += barebox-phytec-pbab01-1gib.img
++
++pblx-$(CONFIG_MACH_PHYTEC_PFLA02) += start_phytec_pbab01dl_1gib
++CFG_start_phytec_pbab01dl_1gib.pblx.imximg = $(board)/phytec-pfla02/flash-header-phytec-pfla02dl-1gib.imxcfg
++imximage-$(CONFIG_MACH_PHYTEC_PFLA02) += start_phytec_pbab01dl_1gib.pblx.imximg
++FILE_barebox-phytec-pbab01dl-1gib.img = start_phytec_pbab01dl_1gib.pblx.imximg
++image-$(CONFIG_MACH_PHYTEC_PFLA02) += barebox-phytec-pbab01dl-1gib.img
++
++pblx-$(CONFIG_MACH_PHYTEC_PFLA02) += start_phytec_pbab01s_512mb
++CFG_start_phytec_pbab01s_512mb.pblx.imximg = $(board)/phytec-pfla02/flash-header-phytec-pfla02s-512mb.imxcfg
++imximage-$(CONFIG_MACH_PHYTEC_PFLA02) += start_phytec_pbab01s_512mb.pblx.imximg
++FILE_barebox-phytec-pbab01s-512mb.img = start_phytec_pbab01s_512mb.pblx.imximg
++image-$(CONFIG_MACH_PHYTEC_PFLA02) += barebox-phytec-pbab01s-512mb.img
+-- 
+1.7.0.4
+

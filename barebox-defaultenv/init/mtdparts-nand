@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ "$1" = menu ]; then
+	init-menu-add-entry "$0" "NAND partitions"
+	exit
+fi
+
+mtdparts="4M(nand0.barebox),512k(nand0.bareboxenv),8M(nand0.kernel),-(nand0.root)"
+#mtdparts="512k(nand0.barebox)ro,128k(nand0.bareboxenv),-(nand0.sys)"
+kernelname="gpmi-nand"
+
+mtdparts-add -b -d nand0 -k ${kernelname} -p ${mtdparts}

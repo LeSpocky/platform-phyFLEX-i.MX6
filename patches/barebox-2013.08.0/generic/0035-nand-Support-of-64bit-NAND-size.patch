@@ -1,0 +1,244 @@
+From 2b75492ab3230dcc3aa271f971f6bd49f6f7a37c Mon Sep 17 00:00:00 2001
+From: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+Date: Tue, 5 Nov 2013 12:25:13 +0300
+Subject: [PATCH 35/55] nand: Support of 64bit NAND size.
+
+Now NAND device can have size >= 4GB but partition operations
+(described in the drivers/mtd/partition.c) are not suited for managing
+64bit-sized partitions.
+
+Signed-off-by: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+---
+ commands/nandtest.c                 |    2 +-
+ commands/partition.c                |   11 ++++++-----
+ drivers/mtd/core.c                  |    3 ++-
+ drivers/mtd/devices/m25p80.c        |    5 +++--
+ drivers/mtd/devices/mtd_dataflash.c |    2 +-
+ drivers/mtd/mtdoob.c                |    2 +-
+ drivers/mtd/mtdraw.c                |    4 +++-
+ drivers/mtd/nand/nand_base.c        |    2 +-
+ include/linux/mtd/mtd-abi.h         |   12 +++++++++++-
+ include/linux/mtd/mtd.h             |    9 ++++++++-
+ lib/libmtd.c                        |    2 +-
+ 11 files changed, 38 insertions(+), 16 deletions(-)
+
+diff --git a/commands/nandtest.c b/commands/nandtest.c
+index f6e8f99..dae703c 100644
+--- a/commands/nandtest.c
++++ b/commands/nandtest.c
+@@ -277,7 +277,7 @@ static int do_nandtest(int argc, char *argv[])
+ 	}
+ 	if (length + flash_offset > meminfo.size) {
+ 		printf("Length 0x%08llx + offset 0x%08llx exceeds "
+-				"device size 0x%08x\n", length,
++				"device size 0x%08llx\n", length,
+ 				flash_offset, meminfo.size);
+ 		goto err;
+ 	}
+diff --git a/commands/partition.c b/commands/partition.c
+index 6d37471..f825722 100644
+--- a/commands/partition.c
++++ b/commands/partition.c
+@@ -42,10 +42,11 @@
+ #define PART_ADD_DEVNAME (1 << 0)
+ 
+ static int mtd_part_do_parse_one(char *devname, const char *partstr,
+-				 char **endp, unsigned long *offset,
+-				 off_t devsize, size_t *retsize, unsigned int pflags)
++				 char **endp, loff_t *offset,
++				 loff_t devsize, size_t *retsize,
++				 unsigned int pflags)
+ {
+-	ulong size;
++	loff_t size;
+ 	char *end;
+ 	char buf[PATH_MAX] = {};
+ 	unsigned long flags = 0;
+@@ -114,8 +115,8 @@ static int do_addpart(int argc, char *argv[])
+ {
+ 	char *devname;
+ 	char *endp;
+-	unsigned long offset = 0;
+-	off_t devsize;
++	loff_t offset = 0;
++	loff_t devsize;
+ 	struct stat s;
+ 	int opt;
+ 	unsigned int flags = PART_ADD_DEVNAME;
+diff --git a/drivers/mtd/core.c b/drivers/mtd/core.c
+index 70036aa..be454da 100644
+--- a/drivers/mtd/core.c
++++ b/drivers/mtd/core.c
+@@ -379,7 +379,8 @@ int add_mtd_device(struct mtd_info *mtd, char *devname)
+ 	mtd->cdev.mtd = mtd;
+ 
+ 	if (IS_ENABLED(CONFIG_PARAMETER)) {
+-		dev_add_param_int_ro(&mtd->class_dev, "size", mtd->size, "%u");
++		dev_add_param_int_ro(&mtd->class_dev,
++			"size", mtd->size, "%llu");
+ 		dev_add_param_int_ro(&mtd->class_dev, "erasesize", mtd->erasesize, "%u");
+ 		dev_add_param_int_ro(&mtd->class_dev, "writesize", mtd->oobsize, "%u");
+ 		dev_add_param_int_ro(&mtd->class_dev, "oobsize", mtd->oobsize, "%u");
+diff --git a/drivers/mtd/devices/m25p80.c b/drivers/mtd/devices/m25p80.c
+index 57fe1f2..ad14a22 100644
+--- a/drivers/mtd/devices/m25p80.c
++++ b/drivers/mtd/devices/m25p80.c
+@@ -272,8 +272,9 @@ static int erase_sector(struct m25p *flash, u32 offset, u32 command)
+ static int m25p80_erase(struct mtd_info *mtd, struct erase_info *instr)
+ {
+ 	struct m25p *flash = mtd_to_m25p(mtd);
+-	u32 addr, len;
++	u32 addr;
+ 	uint32_t rem;
++	uint64_t len;
+ 
+ 	dev_dbg(&flash->spi->dev, "%s at 0x%llx, len %lld\n",
+ 			__func__, (long long)instr->addr,
+@@ -884,7 +885,7 @@ static int m25p_probe(struct device_d *dev)
+ 	flash->mtd.type = MTD_NORFLASH;
+ 	flash->mtd.writesize = 1;
+ 	flash->mtd.flags = MTD_CAP_NORFLASH;
+-	flash->mtd.size = info->sector_size * info->n_sectors;
++	flash->mtd.size = (uint64_t)info->sector_size * info->n_sectors;
+ 	flash->mtd.erase = m25p80_erase;
+ 	flash->mtd.read = m25p80_read;
+ 
+diff --git a/drivers/mtd/devices/mtd_dataflash.c b/drivers/mtd/devices/mtd_dataflash.c
+index 52bd842..db00196 100644
+--- a/drivers/mtd/devices/mtd_dataflash.c
++++ b/drivers/mtd/devices/mtd_dataflash.c
+@@ -624,7 +624,7 @@ add_dataflash_otp(struct spi_device *spi, char *name,
+ 
+ 	device = &priv->mtd;
+ 	device->name = (pdata && pdata->name) ? pdata->name : "dataflash";
+-	device->size = nr_pages * pagesize;
++	device->size = nr_pages * (uint64_t)pagesize;
+ 	device->erasesize = pagesize;
+ 	device->writesize = pagesize;
+ 	device->type = MTD_DATAFLASH;
+diff --git a/drivers/mtd/mtdoob.c b/drivers/mtd/mtdoob.c
+index 1e88b53..54888cd 100644
+--- a/drivers/mtd/mtdoob.c
++++ b/drivers/mtd/mtdoob.c
+@@ -78,7 +78,7 @@ static int add_mtdoob_device(struct mtd_info *mtd, char *devname, void **priv)
+ 
+ 	mtdoob = xzalloc(sizeof(*mtdoob));
+ 	mtdoob->cdev.ops = &mtd_ops_oob;
+-	mtdoob->cdev.size = (mtd->size / mtd->writesize) * mtd->oobsize;
++	mtdoob->cdev.size = mtd_div_by_wb(mtd->size, mtd) * mtd->oobsize;
+ 	mtdoob->cdev.name = asprintf("%s_oob%d", devname, mtd->class_dev.id);
+ 	mtdoob->cdev.priv = mtdoob;
+ 	mtdoob->cdev.dev = &mtd->class_dev;
+diff --git a/drivers/mtd/mtdraw.c b/drivers/mtd/mtdraw.c
+index 1a4711e..aa77dff 100644
+--- a/drivers/mtd/mtdraw.c
++++ b/drivers/mtd/mtdraw.c
+@@ -286,12 +286,14 @@ static int add_mtdraw_device(struct mtd_info *mtd, char *devname, void **priv)
+ {
+ 	struct mtdraw *mtdraw;
+ 
++	uint64_t tmp;
++
+ 	mtdraw = xzalloc(sizeof(*mtdraw));
+ 	mtdraw->writebuf = xmalloc(RAW_WRITEBUF_SIZE);
+ 	mtdraw->mtd = mtd;
+ 
+ 	mtdraw->cdev.ops = (struct file_operations *)&mtd_raw_fops;
+-	mtdraw->cdev.size = mtd->size / mtd->writesize *
++	mtdraw->cdev.size = mtd_div_by_wb(mtd->size, mtd) *
+ 		(mtd->writesize + mtd->oobsize);
+ 	mtdraw->cdev.name = asprintf("%sraw%d", devname, mtd->class_dev.id);
+ 	mtdraw->cdev.priv = mtdraw;
+diff --git a/drivers/mtd/nand/nand_base.c b/drivers/mtd/nand/nand_base.c
+index f2f9bf8..57db500 100644
+--- a/drivers/mtd/nand/nand_base.c
++++ b/drivers/mtd/nand/nand_base.c
+@@ -3299,7 +3299,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
+ 
+ 	/* Store the number of chips and calc total size for mtd */
+ 	chip->numchips = i;
+-	mtd->size = i * (chip->chipsize - 1);
++	mtd->size = i * chip->chipsize;
+ 
+ 	pr_info("NAND device: Manufacturer ID: 0x%02x, Chip ID: 0x%02x (%s %s),"
+ 		" %dMiB, page size: %d, OOB size: %d\n",
+diff --git a/include/linux/mtd/mtd-abi.h b/include/linux/mtd/mtd-abi.h
+index fa8e36f..02d0873 100644
+--- a/include/linux/mtd/mtd-abi.h
++++ b/include/linux/mtd/mtd-abi.h
+@@ -9,6 +9,8 @@
+ 
+ #ifndef DOXYGEN_SHOULD_SKIP_THIS
+ 
++#include <asm-generic/div64.h>
++
+ struct erase_info_user {
+ 	uint32_t start;
+ 	uint32_t length;
+@@ -73,7 +75,7 @@ enum {
+ struct mtd_info_user {
+ 	uint8_t type;
+ 	uint32_t flags;
+-	uint32_t size;	 // Total size of the MTD
++	uint64_t size;	 /* Total size of the MTD */
+ 	uint32_t erasesize;
+ 	uint32_t writesize;
+ 	uint32_t oobsize;   // Amount of OOB data per block (e.g. 16)
+@@ -172,6 +174,14 @@ enum mtd_file_modes {
+ 	MTD_MODE_RAW,
+ };
+ 
++static inline uint32_t mtd_user_div_by_eb(uint64_t sz,
++	struct mtd_info_user *mtd_user)
++{
++	do_div(sz, mtd_user->erasesize);
++	return sz;
++}
++
++
+ #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+ 
+ #endif /* __MTD_ABI_H__ */
+diff --git a/include/linux/mtd/mtd.h b/include/linux/mtd/mtd.h
+index ed8722e..f951301 100644
+--- a/include/linux/mtd/mtd.h
++++ b/include/linux/mtd/mtd.h
+@@ -85,7 +85,7 @@ struct mtd_oob_ops {
+ struct mtd_info {
+ 	u_char type;
+ 	u_int32_t flags;
+-	u_int32_t size;	 // Total size of the MTD
++	u_int64_t size;	 /* Total size of the MTD */
+ 
+ 	/* "Major" erase size for the device. Naïve users may take this
+ 	 * to be the only erase size available, or may use the more detailed
+@@ -252,6 +252,13 @@ static inline uint32_t mtd_mod_by_eb(uint64_t sz, struct mtd_info *mtd)
+ {
+ 	return do_div(sz, mtd->erasesize);
+ }
++
++static inline uint32_t mtd_div_by_wb(uint64_t sz, struct mtd_info *mtd)
++{
++	do_div(sz, mtd->writesize);
++	return sz;
++}
++
+ 	/* Kernel-side ioctl definitions */
+ 
+ extern int add_mtd_device(struct mtd_info *mtd, char *devname);
+diff --git a/lib/libmtd.c b/lib/libmtd.c
+index eecc760..8b4711a 100644
+--- a/lib/libmtd.c
++++ b/lib/libmtd.c
+@@ -325,7 +325,7 @@ int mtd_get_dev_info(const char *node, struct mtd_dev_info *mtd)
+ 		goto out_close;
+ 	}
+ 
+-	mtd->eb_cnt = ui.size / ui.erasesize;
++	mtd->eb_cnt = mtd_user_div_by_eb(ui.size, &ui);
+ 
+ 	switch(mtd->type) {
+ 	case MTD_ABSENT:
+-- 
+1.7.0.4
+

@@ -1,0 +1,47 @@
+From 4ac34a0b2d6a95aad2a6bc55153450cea48edf63 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 9 Aug 2013 09:03:52 +0200
+Subject: [PATCH 06/55] pfla02: Set ODT to recommended setting
+
+Change the ODT values to  0x11117 (Recommended from Freescale)
+see App note AN4579 "i.MX 6 Series Thermal Management Guidelines"
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ .../phytec-pfla02/flash-header-phytec-pfla02.h     |    4 ++--
+ .../phytec-pfla02/flash-header-phytec-pfla02dl.h   |    4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
+index 138ae36..fd09054 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
+@@ -75,8 +75,8 @@ wm 32 0x021b001c 0x04008048
+ wm 32 0x021b0800 0xa1380003
+ wm 32 0x021b4800 0xa1380003
+ wm 32 0x021b0020 0x00005800
+-wm 32 0x021b0818 0x00022227
+-wm 32 0x021b4818 0x00022227
++wm 32 0x021b0818 0x00011117
++wm 32 0x021b4818 0x00011117
+ wm 32 0x021b083c 0x433c033f
+ wm 32 0x021b0840 0x033e033d
+ wm 32 0x021b483c 0x43490351
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+index 68e3bba..54b4246 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+@@ -75,8 +75,8 @@ wm 32 0x021b001c 0x04008048
+ wm 32 0x021b0800 0xa1380003
+ wm 32 0x021b4800 0xa1380003
+ wm 32 0x021b0020 0x00005800
+-wm 32 0x021b0818 0x00022227
+-wm 32 0x021b4818 0x00022227
++wm 32 0x021b0818 0x00011117
++wm 32 0x021b4818 0x00011117
+ wm 32 0x021b083c 0x422E0234
+ wm 32 0x021b0840 0x0231022D
+ wm 32 0x021b483c 0x423A0244
+-- 
+1.7.0.4
+

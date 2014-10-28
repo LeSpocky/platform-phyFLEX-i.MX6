@@ -1,0 +1,28 @@
+From 6d137fac8701b2cbd1b08f26143dc8f0bcb5a62a Mon Sep 17 00:00:00 2001
+From: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+Date: Fri, 8 Nov 2013 07:55:13 +0300
+Subject: [PATCH 40/55] nand: Fix for mtd partition read operation.
+
+Now ubiattach works.
+
+Signed-off-by: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+---
+ drivers/mtd/partition.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/drivers/mtd/partition.c b/drivers/mtd/partition.c
+index ddac6a1..1fbed64 100644
+--- a/drivers/mtd/partition.c
++++ b/drivers/mtd/partition.c
+@@ -13,7 +13,7 @@ struct mtd_part {
+ 
+ #define PART(x)  ((struct mtd_part *)(x))
+ 
+-static int mtd_part_read(struct mtd_info *mtd, loff_t from, uint64_t len,
++static int mtd_part_read(struct mtd_info *mtd, loff_t from, size_t len,
+                 size_t *retlen, u_char *buf)
+ {
+ 	struct mtd_part *part = PART(mtd);
+-- 
+1.7.0.4
+

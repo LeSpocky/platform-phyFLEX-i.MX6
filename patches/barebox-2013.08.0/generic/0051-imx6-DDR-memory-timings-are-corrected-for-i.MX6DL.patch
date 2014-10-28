@@ -1,0 +1,57 @@
+From f52dde8722f5df98f615d8d30349dd2c081c114d Mon Sep 17 00:00:00 2001
+From: Dmitry Lavnikevich <haff@midgard.by>
+Date: Mon, 10 Feb 2014 14:28:13 +0100
+Subject: [PATCH 51/55] imx6: DDR memory timings are corrected for i.MX6DL.
+
+Signed-off-by: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.com>
+---
+ .../phytec-pfla02/flash-header-phytec-pfla02dl.h   |   26 ++++++++++----------
+ 1 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+index 0f83bc9..caee10b 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+@@ -50,7 +50,7 @@ wm 32 0x021b481c 0x33333333
+ wm 32 0x021b4820 0x33333333
+ wm 32 0x021b4824 0x33333333
+ wm 32 0x021b4828 0x33333333
+-wm 32 0x021b0018 0x00081740
++wm 32 0x021b0018 0x00091740
+ wm 32 0x021b001c 0x00008000
+ wm 32 0x021b000c 0x555a7975
+ wm 32 0x021b0010 0xff538e64
+@@ -77,18 +77,18 @@ wm 32 0x021b4800 0xa1380003
+ wm 32 0x021b0020 0x00005800
+ wm 32 0x021b0818 0x00011117
+ wm 32 0x021b4818 0x00011117
+-wm 32 0x021b083c 0x422D0230
+-wm 32 0x021b0840 0x022F022E
+-wm 32 0x021b483c 0x4237023D
+-wm 32 0x021b4840 0x02340224
+-wm 32 0x021b0848 0x38333135
+-wm 32 0x021b4848 0x36353338
+-wm 32 0x021b0850 0x2E2E332C
+-wm 32 0x021b4850 0x3727382F
+-wm 32 0x021b080c 0x000C000D
+-wm 32 0x021b0810 0x0018001A
+-wm 32 0x021b480c 0x00270023
+-wm 32 0x021b4810 0x002F002D
++wm 32 0x021b083c 0x422d0231
++wm 32 0x021b0840 0x022f022d
++wm 32 0x021b483c 0x4236023a
++wm 32 0x021b4840 0x0236021e
++wm 32 0x021b0848 0x332f3033
++wm 32 0x021b4848 0x302d2c35
++wm 32 0x021b0850 0x3030362a
++wm 32 0x021b4850 0x3423372d
++wm 32 0x021b080c 0x001a001a
++wm 32 0x021b0810 0x00250029
++wm 32 0x021b480c 0x00360032
++wm 32 0x021b4810 0x003e003d
+ wm 32 0x021b08b8 0x00000800
+ wm 32 0x021b48b8 0x00000800
+ wm 32 0x021b001c 0x00000000
+-- 
+1.7.0.4
+

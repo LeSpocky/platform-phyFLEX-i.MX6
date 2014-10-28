@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# board defaults, do not change in running system. Change /env/config
+# instead
+
+global linux.bootargs.dyn.display
+global linux.bootargs.dyn.cam
+
+global.allow_color=false
+
+global.hostname=phyFLEX-i.MX6
+global.linux.bootargs.base="console=ttymxc3,115200 enable_wait_mode=off vt.global_cursor_default=0 consoleblank=0"

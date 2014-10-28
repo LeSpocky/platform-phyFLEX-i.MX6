@@ -1,0 +1,28 @@
+From d227726c274f56d89815903f8545c1f3b2831a98 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Tue, 14 Jan 2014 15:22:39 +0100
+Subject: [PATCH 46/55] dts:imx6:pfla02: cleanup devicetree
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/dts/imx6q-phytec-pbab01.dts |    5 -----
+ 1 files changed, 0 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/dts/imx6q-phytec-pbab01.dts b/arch/arm/dts/imx6q-phytec-pbab01.dts
+index 26046e0..580338d 100644
+--- a/arch/arm/dts/imx6q-phytec-pbab01.dts
++++ b/arch/arm/dts/imx6q-phytec-pbab01.dts
+@@ -19,10 +19,5 @@
+ 
+ 	chosen {
+ 		linux,stdout-path = &uart4;
+-
+-		environment@0 {
+-			compatible = "barebox,environment";
+-			device-path = &flash, "partname:barebox-environment";
+-		};
+ 	};
+ };
+-- 
+1.7.0.4
+

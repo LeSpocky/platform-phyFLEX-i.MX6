@@ -1,0 +1,30 @@
+From ea19198029b02612fb222878d40a45575d5a33ba Mon Sep 17 00:00:00 2001
+From: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+Date: Thu, 24 Oct 2013 15:12:24 +0300
+Subject: [PATCH 37/55] nand: Change nand partitions table
+
+Now barebox evironment takes 512kB instead of 128kB since partition
+size cannot be lesser than eraseblock size (which is 512kB in case of
+Micron 4GB NAND MT29F32G08AFACAWP).
+
+Signed-off-by: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+---
+ .../boards/phytec-pfla02/env/init/mtdparts-nand    |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
+index 02c2f40..24b5354 100644
+--- a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
++++ b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
+@@ -5,7 +5,7 @@ if [ "$1" = menu ]; then
+ 	exit
+ fi
+ 
+-mtdparts="2M(nand0.barebox),128k(nand0.bareboxenv),8M(nand0.kernel),-(nand0.root)"
++mtdparts="2M(nand0.barebox),512k(nand0.bareboxenv),8M(nand0.kernel),-(nand0.root)"
+ #mtdparts="512k(nand0.barebox)ro,128k(nand0.bareboxenv),-(nand0.sys)"
+ kernelname="gpmi-nand"
+ 
+-- 
+1.7.0.4
+

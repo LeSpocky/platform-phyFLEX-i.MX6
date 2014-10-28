@@ -1,0 +1,32 @@
+From f5bbcf0c08a4a60a1255201394aed0c17df38ec4 Mon Sep 17 00:00:00 2001
+From: Sascha Hauer <s.hauer@pengutronix.de>
+Date: Wed, 27 Nov 2013 11:21:59 +0100
+Subject: [PATCH 47/55] Fix endless loop in automount code
+
+A chdir to a path registered as an automount path followed by a 'ls'
+results in an endless loop. This happens because the command the
+automounter executes results in another automount request.
+Fix this by running the automounter from the chdir code before
+the cwd is actually changed.
+
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+ fs/fs.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/fs/fs.c b/fs/fs.c
+index d913a50..9f4f49d 100644
+--- a/fs/fs.c
++++ b/fs/fs.c
+@@ -565,6 +565,8 @@ int chdir(const char *pathname)
+ 	if (ret)
+ 		goto out;
+ 
++	automount_mount(p, 0);
++
+ 	strcpy(cwd, p);
+ 
+ out:
+-- 
+1.7.0.4
+

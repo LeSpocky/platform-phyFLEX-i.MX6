@@ -1,0 +1,153 @@
+From 8bb1592f0f59a6bad1c074ad0b3c1f5ffbfaf92b Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Mon, 24 Feb 2014 12:14:38 +0100
+Subject: [PATCH 52/55] pfla02: Add support for 4GB RAM
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/lowlevel.c  |    3 +-
+ arch/arm/dts/Makefile                     |    6 ++-
+ arch/arm/dts/imx6q-phytec-pbab01-4gb.dts  |   23 ++++++++++++
+ arch/arm/dts/imx6q-phytec-pfla02-4gb.dtsi |   55 +++++++++++++++++++++++++++++
+ 4 files changed, 84 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arm/dts/imx6q-phytec-pbab01-4gb.dts
+ create mode 100644 arch/arm/dts/imx6q-phytec-pfla02-4gb.dtsi
+
+diff --git a/arch/arm/boards/phytec-pfla02/lowlevel.c b/arch/arm/boards/phytec-pfla02/lowlevel.c
+index c731ec5..188bce0 100644
+--- a/arch/arm/boards/phytec-pfla02/lowlevel.c
++++ b/arch/arm/boards/phytec-pfla02/lowlevel.c
+@@ -25,6 +25,7 @@
+ #include <mach/imx6.h>
+ 
+ extern char __dtb_imx6q_phytec_pbab01_start[];
++extern char __dtb_imx6q_phytec_pbab01_4gb_start[];
+ extern char __dtb_imx6dl_phytec_pbab01_start[];
+ extern char __dtb_imx6dl_phytec_pbab01_512MB_start[];
+ extern char __dtb_imx6s_phytec_pbab01_start[];
+@@ -84,7 +85,7 @@ ENTRY_FUNCTION(start_phytec_pbab01_4gib)(void)
+ 
+ 	arm_setup_stack(0x00920000 - 8);
+ 
+-	fdt = (uint32_t)__dtb_imx6q_phytec_pbab01_start - get_runtime_offset();
++	fdt = (uint32_t)__dtb_imx6q_phytec_pbab01_4gb_start - get_runtime_offset();
+ 
+ 	barebox_arm_entry(0x10000000, 0xEFFFFFF8, fdt);
+ }
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index a222412..c5f8c89 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -10,7 +10,8 @@ dtb-$(CONFIG_ARCH_IMX6) += imx6q-gk802.dtb \
+ 	imx6s-phytec-pbab01.dtb \
+ 	imx6dl-phytec-pbab01-512MB.dtb \
+ 	imx6dl-phytec-pbab01.dtb \
+-	imx6q-phytec-pbab01.dtb
++	imx6q-phytec-pbab01.dtb \
++	imx6q-phytec-pbab01-4gb.dtb
+ dtb-$(CONFIG_ARCH_MVEBU) += dove-cubox.dtb
+ 
+ BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_BUILTIN_DTB_NAME))
+@@ -20,7 +21,8 @@ pbl-$(CONFIG_MACH_EFIKA_MX_SMARTBOOK) += imx51-genesi-efika-sb.dtb.o
+ pbl-$(CONFIG_MACH_FREESCALE_MX51_PDK) += imx51-babbage.dtb.o
+ pbl-$(CONFIG_MACH_FREESCALE_MX53_LOCO) += imx53-qsb.dtb.o
+ pbl-$(CONFIG_MACH_PHYTEC_PFLA02) += imx6s-phytec-pbab01.dtb.o imx6dl-phytec-pbab01-512MB.dtb.o \
+-					imx6dl-phytec-pbab01.dtb.o imx6q-phytec-pbab01.dtb.o
++					imx6dl-phytec-pbab01.dtb.o imx6q-phytec-pbab01.dtb.o \
++					imx6q-phytec-pbab01-4gb.dtb.o
+ pbl-$(CONFIG_MACH_REALQ7) += imx6q-dmo-realq7.dtb.o
+ pbl-$(CONFIG_MACH_GK802) += imx6q-gk802.dtb.o
+ pbl-$(CONFIG_MACH_TQMA6X) += imx6dl-mba6x.dtb.o imx6q-mba6x.dtb.o
+diff --git a/arch/arm/dts/imx6q-phytec-pbab01-4gb.dts b/arch/arm/dts/imx6q-phytec-pbab01-4gb.dts
+new file mode 100644
+index 0000000..b1bce5d
+--- /dev/null
++++ b/arch/arm/dts/imx6q-phytec-pbab01-4gb.dts
+@@ -0,0 +1,23 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/dts-v1/;
++#include "imx6q-phytec-pfla02-4gb.dtsi"
++#include "imx6qdl-phytec-pbab01.dtsi"
++
++/ {
++	model = "Phytec phyFLEX-i.MX6 Quad Carrier-Board";
++	compatible = "phytec,imx6x-pbab01", "phytec,imx6q-pfla02", "fsl,imx6q";
++
++	chosen {
++		linux,stdout-path = &uart4;
++	};
++};
+diff --git a/arch/arm/dts/imx6q-phytec-pfla02-4gb.dtsi b/arch/arm/dts/imx6q-phytec-pfla02-4gb.dtsi
+new file mode 100644
+index 0000000..8276986
+--- /dev/null
++++ b/arch/arm/dts/imx6q-phytec-pfla02-4gb.dtsi
+@@ -0,0 +1,55 @@
++/*
++ * Copyright 2013 Christian Hemp, Phytec Messtechnik GmbH
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++#include "imx6q.dtsi"
++#include "imx6qdl-phytec-pfla02.dtsi"
++
++
++/ {
++	model = "Phytec phyFLEX-i.MX6 Quad";
++	compatible = "phytec,imx6q-pfla02", "fsl,imx6q";
++
++	memory {
++		reg = <0x10000000 0xEFFFFFF8>;
++	};
++};
++
++&ecspi3 {
++	status = "okay";
++};
++
++&iomuxc {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hog>;
++
++	hog {
++		pinctrl_hog: hoggrp {
++			fsl,pins = <
++				MX6Q_PAD_EIM_D23__GPIO3_IO23    0x80000000
++				MX6Q_PAD_DISP0_DAT3__GPIO4_IO24	0x80000000 /* SPI NOR chipselect */
++				MX6Q_PAD_SD4_DAT3__GPIO2_IO11	0x80000000
++				MX6Q_PAD_SD4_DAT4__GPIO2_IO12	0x80000000
++				MX6Q_PAD_SD4_DAT5__GPIO2_IO13	0x80000000
++				MX6Q_PAD_SD4_DAT6__GPIO2_IO14	0x80000000
++				MX6Q_PAD_SD4_DAT7__GPIO2_IO15	0x80000000
++			>;
++		};
++	};
++
++	pfla02 {
++		pinctrl_usdhc3_pfla02: usdhc3grp-pfla02 {
++			fsl,pins = <
++				MX6Q_PAD_ENET_RXD0__GPIO1_IO27  0x80000000
++				MX6Q_PAD_ENET_TXD1__GPIO1_IO29  0x80000000
++			>;
++		};
++	};
++};
+-- 
+1.7.0.4
+

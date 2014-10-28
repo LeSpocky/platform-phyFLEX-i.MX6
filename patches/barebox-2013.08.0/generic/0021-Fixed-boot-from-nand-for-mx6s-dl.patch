@@ -1,0 +1,29 @@
+From 05182e9c929ed8e497a866e742c03afd5d0ea7b2 Mon Sep 17 00:00:00 2001
+From: Uladzimir Bely <u.bely@sam-solutions.net>
+Date: Fri, 13 Sep 2013 15:30:03 +0300
+Subject: [PATCH 21/55] Fixed boot from nand for mx6s/dl
+
+Signed-off-by: Uladzimir Bely <u.bely@sam-solutions.net>
+---
+ .../phytec-pfla02/flash-header-phytec-pfla02dl.h   |    8 --------
+ 1 files changed, 0 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+index 54b4246..02b62cf 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02dl.h
+@@ -93,11 +93,3 @@ wm 32 0x021b08b8 0x00000800
+ wm 32 0x021b48b8 0x00000800
+ wm 32 0x021b001c 0x00000000
+ wm 32 0x021b0404 0x00011006
+-wm 32 0x020C4068 0x00C03F3F
+-wm 32 0x020C406c 0x0030FC03
+-wm 32 0x020C4070 0x0FFFC000
+-wm 32 0x020C4074 0x3FF00000
+-wm 32 0x020C4078 0x00FFF300
+-wm 32 0x020C407c 0x0F0000C3
+-wm 32 0x020C4080 0x000003FF
+-wm 32 0x020c4060 0x000000fb
+-- 
+1.7.0.4
+

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+#CSI0/1 interface mode. Please read "How_do_I_use_phyCAM_with_phyFLEX-i.MX6.pdf"
+#see /home/gstreamer_examples/How_do_I_use_phyCAM_with_phyFLEX-i.MX6.pdf 
+#===============================================================================
+CSI0=phyCAM-P,VM-011,0x48
+CSI1=phyCAM-P,VM-011,0x5d
+
+#VM-007-BW/COL / VM-010-BW/COL color typ, can be 'color' or 'mono' (def. color)
+#==============================================================================
+mt9v02x="mt9v022.sensor_type=color"
+
+#VM-011-BW/COL-x color typ, set 'Y'=mono, no exist = color (def. color)
+#======================================================================
+#mt0p031_typ="mt9p031.mono=Y"
+
+global.linux.bootargs.dyn.cam="board_mx6q_phyflex.csi0=$CSI0 board_mx6q_phyflex.csi1=$CSI1 $mt0p031_typ $mt9v02x"

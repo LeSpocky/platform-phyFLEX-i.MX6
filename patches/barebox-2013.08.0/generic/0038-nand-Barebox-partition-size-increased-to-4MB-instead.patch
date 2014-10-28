@@ -1,0 +1,29 @@
+From 99b96b63929d39f62f914172f1a3fa76568b89f8 Mon Sep 17 00:00:00 2001
+From: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+Date: Mon, 4 Nov 2013 14:09:47 +0300
+Subject: [PATCH 38/55] nand: Barebox partition size increased to 4MB instead of 2MB.
+
+2MB is not enough for kobs-ng utility to allocate all boot structures
+on boards with 4GB NAND.
+
+Signed-off-by: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+---
+ .../boards/phytec-pfla02/env/init/mtdparts-nand    |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
+index 24b5354..ef4a338 100644
+--- a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
++++ b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nand
+@@ -5,7 +5,7 @@ if [ "$1" = menu ]; then
+ 	exit
+ fi
+ 
+-mtdparts="2M(nand0.barebox),512k(nand0.bareboxenv),8M(nand0.kernel),-(nand0.root)"
++mtdparts="4M(nand0.barebox),512k(nand0.bareboxenv),8M(nand0.kernel),-(nand0.root)"
+ #mtdparts="512k(nand0.barebox)ro,128k(nand0.bareboxenv),-(nand0.sys)"
+ kernelname="gpmi-nand"
+ 
+-- 
+1.7.0.4
+

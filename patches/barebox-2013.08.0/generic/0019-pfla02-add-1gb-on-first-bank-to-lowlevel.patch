@@ -1,0 +1,39 @@
+From 9a64dc01cad1e18310763d9e71c71e705aaf6acf Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Mon, 2 Sep 2013 10:59:42 +0200
+Subject: [PATCH 19/55] pfla02: add 1gb on first bank to lowlevel
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/lowlevel.c |   15 +++++++++++++++
+ 1 files changed, 15 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/lowlevel.c b/arch/arm/boards/phytec-pfla02/lowlevel.c
+index e2dbc95..62df69b 100644
+--- a/arch/arm/boards/phytec-pfla02/lowlevel.c
++++ b/arch/arm/boards/phytec-pfla02/lowlevel.c
+@@ -43,6 +43,21 @@ ENTRY_FUNCTION(start_phytec_pbab01_1gib)(void)
+ 	barebox_arm_entry(0x10000000, SZ_1G, fdt);
+ }
+ 
++ENTRY_FUNCTION(start_phytec_pbab01_1gib_1bank)(void)
++{
++	uint32_t fdt;
++
++	__barebox_arm_head();
++
++	arm_cpu_lowlevel_init();
++
++	arm_setup_stack(0x00920000 - 8);
++
++	fdt = (uint32_t)__dtb_imx6q_phytec_pbab01_start - get_runtime_offset();
++
++	barebox_arm_entry(0x10000000, SZ_1G, fdt);
++}
++
+ ENTRY_FUNCTION(start_phytec_pbab01_2gib)(void)
+ {
+ 	uint32_t fdt;
+-- 
+1.7.0.4
+

@@ -1,0 +1,57 @@
+From 4ab1496eac76a1ee545dc89855c24fa1e7e20d94 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Sun, 1 Sep 2013 10:05:26 +0200
+Subject: [PATCH 16/55] pfla02:env: set nor partitions for kernel
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/env/boot/nand        |    2 +-
+ arch/arm/boards/phytec-pfla02/env/boot/sd-ext3     |    2 +-
+ .../arm/boards/phytec-pfla02/env/init/mtdparts-nor |    8 +++++---
+ 3 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/nand b/arch/arm/boards/phytec-pfla02/env/boot/nand
+index 00db262..06f61b3 100644
+--- a/arch/arm/boards/phytec-pfla02/env/boot/nand
++++ b/arch/arm/boards/phytec-pfla02/env/boot/nand
+@@ -11,5 +11,5 @@ global.bootm.oftree="none"
+ bootargs-ip
+ bootargs-cam
+ bootargs-display
+-global.linux.bootargs.dyn.root="root=ubi0:root ubi.mtd=4 rootfstype=ubifs"
++global.linux.bootargs.dyn.root="root=ubi0:root ubi.mtd=5 rootfstype=ubifs"
+ 
+diff --git a/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3 b/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
+index 8d5679c..a49f184 100644
+--- a/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
++++ b/arch/arm/boards/phytec-pfla02/env/boot/sd-ext3
+@@ -8,7 +8,7 @@ fi
+ global.bootm.image="/mnt/mmc/linuximage"
+ #global.bootm.oftree="/boot/oftree"
+ global.bootm.oftree="none"
+-bootarg-ip
++bootargs-ip
+ bootargs-cam
+ bootargs-display
+ global.linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootfstype=ext3 rootwait"
+diff --git a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor
+index fbcfc45..c11b089 100644
+--- a/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor
++++ b/arch/arm/boards/phytec-pfla02/env/init/mtdparts-nor
+@@ -5,8 +5,10 @@ if [ "$1" = menu ]; then
+         exit
+ fi
+ 
+-#mtdparts="512k(nor0.barebox),512k(nor0.bareboxenv),4M(nor0.kernel),-(nor0.root)"
+-mtdparts="512k(m25p0.barebox),512k(m25p0.bareboxenv),4M(m25p0.kernel),-(m25p0.root)"
++mtdparts="512k(m25p0.barebox),64k(m25p0.bareboxenv)"
+ kernelname="n25q128"
+ 
+-mtdparts-add -d nor0 -k ${kernelname} -p ${mtdparts}
++if [ -n ${kernelname} ]; then
++	global linux.mtdparts.m25p0
++	global.linux.mtdparts.m25p0="${kernelname}:${mtdparts}"
++fi
+-- 
+1.7.0.4
+

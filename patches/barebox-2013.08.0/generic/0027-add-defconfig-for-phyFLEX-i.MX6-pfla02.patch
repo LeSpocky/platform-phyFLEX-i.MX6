@@ -1,0 +1,28 @@
+From a7ff8f00e9fbec66199c9952274a4aeb2d342bc1 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 11 Oct 2013 12:48:13 +0200
+Subject: [PATCH 27/55] add defconfig for phyFLEX-i.MX6 pfla02
+
+Set version string
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/configs/pfal02_defconfig |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/configs/pfal02_defconfig b/arch/arm/configs/pfal02_defconfig
+index d0417d8..a03b026 100644
+--- a/arch/arm/configs/pfal02_defconfig
++++ b/arch/arm/configs/pfal02_defconfig
+@@ -102,7 +102,7 @@ CONFIG_BAREBOX_UPDATE=y
+ #
+ # General Settings
+ #
+-CONFIG_LOCALVERSION="PD13.2.2"
++CONFIG_LOCALVERSION="PD13.2.2_EA1"
+ CONFIG_LOCALVERSION_AUTO=y
+ CONFIG_BANNER=y
+ CONFIG_MEMINFO=y
+-- 
+1.7.0.4
+

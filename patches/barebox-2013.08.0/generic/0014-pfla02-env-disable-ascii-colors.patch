@@ -1,0 +1,26 @@
+From 4cb1166a809dc50f52be425e4742601fa070673d Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Thu, 29 Aug 2013 12:13:22 +0200
+Subject: [PATCH 14/55] pfla02: env: disable ascii colors
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/env/config-board |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/env/config-board b/arch/arm/boards/phytec-pfla02/env/config-board
+index 13ed38f..fef5d08 100644
+--- a/arch/arm/boards/phytec-pfla02/env/config-board
++++ b/arch/arm/boards/phytec-pfla02/env/config-board
+@@ -6,5 +6,7 @@
+ global linux.bootargs.dyn.display
+ global linux.bootargs.dyn.cam
+ 
++global.allow_color=false
++
+ global.hostname=phyFLEX-i.MX6
+-global.linux.bootargs.base="console=ttymxc3,115200 vt.global_cursor_default=0 consoleblank=0"
++global.linux.bootargs.base="console=ttymxc3,115200 enable_wait_mode=off vt.global_cursor_default=0 consoleblank=0"
+-- 
+1.7.0.4
+

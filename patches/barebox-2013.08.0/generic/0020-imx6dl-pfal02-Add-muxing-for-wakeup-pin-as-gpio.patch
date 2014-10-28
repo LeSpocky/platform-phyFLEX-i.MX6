@@ -1,0 +1,25 @@
+From ca8e1a6dd7949a943ed58317d24ca9ba965e1294 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Tue, 3 Sep 2013 15:58:49 +0200
+Subject: [PATCH 20/55] imx6dl: pfal02: Add muxing for wakeup pin as gpio
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/dts/imx6dl-phytec-pfla02.dtsi |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/dts/imx6dl-phytec-pfla02.dtsi b/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
+index 768fcdd..9279fb0 100644
+--- a/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
++++ b/arch/arm/dts/imx6dl-phytec-pfla02.dtsi
+@@ -49,6 +49,7 @@
+ 			fsl,pins = <
+ 				MX6DL_PAD_EIM_D23__GPIO3_IO23    0x80000000
+ 				MX6DL_PAD_DISP0_DAT3__GPIO4_IO24 0x80000000 /* SPI NOR chipselect */
++				MX6DL_PAD_SD4_DAT3__GPIO2_IO11	 0x80000000
+ 			>;
+ 		};
+ 	};
+-- 
+1.7.0.4
+

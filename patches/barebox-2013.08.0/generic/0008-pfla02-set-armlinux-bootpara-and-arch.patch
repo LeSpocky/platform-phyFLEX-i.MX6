@@ -1,0 +1,29 @@
+From 5c4871f4d687f5c39b72289023864ac094c17df1 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Fri, 9 Aug 2013 11:39:12 +0200
+Subject: [PATCH 08/55] pfla02: set armlinux bootpara and arch
+
+Set the bootparams and architecture for not devicetree kernel
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ arch/arm/boards/phytec-pfla02/board.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/board.c b/arch/arm/boards/phytec-pfla02/board.c
+index ae33e1f..f9a8647 100644
+--- a/arch/arm/boards/phytec-pfla02/board.c
++++ b/arch/arm/boards/phytec-pfla02/board.c
+@@ -104,6 +104,9 @@ static int phytec_pfla02_init(void)
+ 	phy_register_fixup_for_uid(PHY_ID_KSZ9031, MICREL_PHY_ID_MASK,
+ 					   ksz9031rn_phy_fixup);
+ 
++	armlinux_set_bootparams((void *)0x10000100);
++	armlinux_set_architecture(3529);
++
+ 	return 0;
+ }
+ device_initcall(phytec_pfla02_init);
+-- 
+1.7.0.4
+

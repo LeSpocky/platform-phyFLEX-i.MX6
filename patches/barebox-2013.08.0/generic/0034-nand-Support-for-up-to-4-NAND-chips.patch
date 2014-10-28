@@ -1,0 +1,135 @@
+From 3f5e0425238dd88746fa307cde0ed300455fa77e Mon Sep 17 00:00:00 2001
+From: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+Date: Tue, 5 Nov 2013 12:14:40 +0300
+Subject: [PATCH 34/55] nand: Support for up to 4 NAND chips.
+
+Will only work in case of multiple chips returning same manufacturer
+and device IDs. It is true for NAND which is organized into several
+dies using separate chip enable signals.
+
+TODO: fix detected mtd size. Currently it is calculated as
+  numofchips * (chipsize - 1)
+instead of
+  numofchips * chipsize
+to avoid overflow of uint32_t in case of 4GB NAND. Size must be
+presented by uint64_t instead.
+
+Signed-off-by: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+---
+ drivers/mtd/nand/nand_base.c |   21 ++++++++++++---------
+ drivers/mtd/nand/nand_mxs.c  |   11 +++++++++--
+ 2 files changed, 21 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/mtd/nand/nand_base.c b/drivers/mtd/nand/nand_base.c
+index c252a2a..f2f9bf8 100644
+--- a/drivers/mtd/nand/nand_base.c
++++ b/drivers/mtd/nand/nand_base.c
+@@ -3102,6 +3102,7 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
+ 						  struct nand_chip *chip,
+ 						  int busw,
+ 						  int *maf_id, int *dev_id,
++						  char **maf_name,
+ 						  struct nand_flash_dev *type)
+ {
+ 	int i, maf_idx;
+@@ -3195,6 +3196,7 @@ ident_done:
+ 		if (nand_manuf_ids[maf_idx].id == *maf_id)
+ 			break;
+ 	}
++	*maf_name = nand_manuf_ids[maf_idx].name;
+ 
+ 	if (chip->options & NAND_BUSWIDTH_AUTO) {
+ 		WARN_ON(chip->options & NAND_BUSWIDTH_16);
+@@ -3207,7 +3209,7 @@ ident_done:
+ 		 */
+ 		pr_info("NAND device: Manufacturer ID:"
+ 			" 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id,
+-			*dev_id, nand_manuf_ids[maf_idx].name, mtd->name);
++			*dev_id, *maf_name, mtd->name);
+ 		pr_warn("NAND bus width %d instead %d bit\n",
+ 			   (chip->options & NAND_BUSWIDTH_16) ? 16 : 8,
+ 			   busw ? 16 : 8);
+@@ -3237,12 +3239,6 @@ ident_done:
+ 	if (mtd->writesize > 512 && chip->cmdfunc == nand_command)
+ 		chip->cmdfunc = nand_command_lp;
+ 
+-	pr_info("NAND device: Manufacturer ID: 0x%02x, Chip ID: 0x%02x (%s %s),"
+-		" %dMiB, page size: %d, OOB size: %d\n",
+-		*maf_id, *dev_id, nand_manuf_ids[maf_idx].name,
+-		chip->onfi_version ? chip->onfi_params.model : type->name,
+-		(int)(chip->chipsize >> 20), mtd->writesize, mtd->oobsize);
+-
+ 	return type;
+ }
+ 
+@@ -3261,6 +3257,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
+ 		    struct nand_flash_dev *table)
+ {
+ 	int i, busw, nand_maf_id, nand_dev_id;
++	char *maf_name;
+ 	struct nand_chip *chip = mtd->priv;
+ 	struct nand_flash_dev *type;
+ 
+@@ -3271,7 +3268,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
+ 
+ 	/* Read the flash type */
+ 	type = nand_get_flash_type(mtd, chip, busw,
+-				&nand_maf_id, &nand_dev_id, table);
++				&nand_maf_id, &nand_dev_id, &maf_name, table);
+ 
+ 	if (IS_ERR(type)) {
+ 		if (!(chip->options & NAND_SCAN_SILENT_NODEV))
+@@ -3302,7 +3299,13 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
+ 
+ 	/* Store the number of chips and calc total size for mtd */
+ 	chip->numchips = i;
+-	mtd->size = i * chip->chipsize;
++	mtd->size = i * (chip->chipsize - 1);
++
++	pr_info("NAND device: Manufacturer ID: 0x%02x, Chip ID: 0x%02x (%s %s),"
++		" %dMiB, page size: %d, OOB size: %d\n",
++		nand_maf_id, nand_dev_id, maf_name,
++		chip->onfi_version ? chip->onfi_params.model : type->name,
++		(int)(mtd->size >> 20), mtd->writesize, mtd->oobsize);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/mtd/nand/nand_mxs.c b/drivers/mtd/nand/nand_mxs.c
+index 8e5c83c..e79189a 100644
+--- a/drivers/mtd/nand/nand_mxs.c
++++ b/drivers/mtd/nand/nand_mxs.c
+@@ -33,6 +33,7 @@
+ #include <dma/apbh-dma.h>
+ #include <stmp-device.h>
+ #include <asm/mmu.h>
++#include <mach/generic.h>
+ 
+ #define	MX28_BLOCK_SFTRST				(1 << 31)
+ #define	MX28_BLOCK_CLKGATE				(1 << 30)
+@@ -427,7 +428,13 @@ static int mxs_nand_device_ready(struct mtd_info *mtd)
+ 
+ 	if (nand_info->version > GPMI_VERSION_TYPE_MX23) {
+ 		tmp = readl(gpmi_regs + GPMI_STAT);
+-		tmp >>= (GPMI_STAT_READY_BUSY_OFFSET + nand_info->cur_chip);
++		/* i.MX6 has only one R/B actual pin, so if there are several
++		   R/B signals they must be all connected to this pin */
++		if (cpu_is_mx6())
++			tmp >>= GPMI_STAT_READY_BUSY_OFFSET;
++		else
++			tmp >>= (GPMI_STAT_READY_BUSY_OFFSET +
++					 nand_info->cur_chip);
+ 	} else {
+ 		tmp = readl(gpmi_regs + GPMI_DEBUG);
+ 		tmp >>= (GPMI_DEBUG_READY0_OFFSET + nand_info->cur_chip);
+@@ -1303,7 +1310,7 @@ static int mxs_nand_probe(struct device_d *dev)
+ 	nand->ecc.strength	= 8;
+ 
+ 	/* first scan to find the device and get the page size */
+-	err = nand_scan_ident(mtd, 1, NULL);
++	err = nand_scan_ident(mtd, 4, NULL);
+ 	if (err)
+ 		goto err2;
+ 
+-- 
+1.7.0.4
+

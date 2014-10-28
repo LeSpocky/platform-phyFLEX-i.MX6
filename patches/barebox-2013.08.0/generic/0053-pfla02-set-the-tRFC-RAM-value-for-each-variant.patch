@@ -1,0 +1,81 @@
+From e43981df8767f35251715cba0c7de9869457f670 Mon Sep 17 00:00:00 2001
+From: Christian Hemp <c.hemp@phytec.de>
+Date: Mon, 24 Feb 2014 12:15:31 +0100
+Subject: [PATCH 53/55] pfla02: set the tRFC RAM value for each variant
+
+This patch fix problems with the 4GB RAM option:
+	Bug report #137  -  4GB RAM option hangs
+		When using the 4GB RAM options, the module often hangs in barebox
+		or linux without error message.
+
+The 4GB RAM blocks needs a different refresh cycle time (tRFC) compared to the
+1GB RAM blocks.
+
+Signed-off-by: Christian Hemp <c.hemp@phytec.de>
+---
+ .../flash-header-phytec-pfla02-1gib-1bank.imxcfg   |    1 +
+ .../flash-header-phytec-pfla02-1gib.imxcfg         |    1 +
+ .../flash-header-phytec-pfla02-2gib.imxcfg         |    1 +
+ .../flash-header-phytec-pfla02-4gib.imxcfg         |    1 +
+ .../phytec-pfla02/flash-header-phytec-pfla02.h     |    1 -
+ 5 files changed, 4 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib-1bank.imxcfg b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib-1bank.imxcfg
+index d2faafb..20bbe15 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib-1bank.imxcfg
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib-1bank.imxcfg
+@@ -1,5 +1,6 @@
+ 
+ #define SETUP_1GIB_2GIB_4GIB		\
++	wm 32 0x021b000c 0x555a7975;	\
+ 	wm 32 0x021b0040 0x00000027;	\
+ 	wm 32 0x021b0000 0x831a0000
+ 
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib.imxcfg b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib.imxcfg
+index d73207c..b1974be 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib.imxcfg
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-1gib.imxcfg
+@@ -1,5 +1,6 @@
+ 
+ #define SETUP_1GIB_2GIB_4GIB		\
++	wm 32 0x021b000c 0x555a7975;	\
+ 	wm 32 0x021b0040 0x00000017;	\
+ 	wm 32 0x021b0000 0xc21a0000
+ 
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-2gib.imxcfg b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-2gib.imxcfg
+index 2291b71..3419e2c 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-2gib.imxcfg
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-2gib.imxcfg
+@@ -1,5 +1,6 @@
+ 
+ #define SETUP_1GIB_2GIB_4GIB		\
++	wm 32 0x021b000c 0x555a7975;	\
+ 	wm 32 0x021b0040 0x00000027;	\
+ 	wm 32 0x021b0000 0xC31A0000
+ 
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-4gib.imxcfg b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-4gib.imxcfg
+index ade7ffc..7639088 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-4gib.imxcfg
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02-4gib.imxcfg
+@@ -1,5 +1,6 @@
+ 
+ #define SETUP_1GIB_2GIB_4GIB             \
++	wm 32 0x021b000c 0x8a5a7975;	\
+         wm 32 0x021b0040 0x00000047;    \
+         wm 32 0x021b0000 0xC41A0000
+ 
+diff --git a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
+index ebe2186..845fb8d 100644
+--- a/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
++++ b/arch/arm/boards/phytec-pfla02/flash-header-phytec-pfla02.h
+@@ -52,7 +52,6 @@ wm 32 0x021b4824 0x33333333
+ wm 32 0x021b4828 0x33333333
+ wm 32 0x021b0018 0x00091740
+ wm 32 0x021b001c 0x00008000
+-wm 32 0x021b000c 0x555a7975
+ wm 32 0x021b0010 0xff538e64
+ wm 32 0x021b0014 0x01ff00db
+ wm 32 0x021b002c 0x000026d2
+-- 
+1.7.0.4
+

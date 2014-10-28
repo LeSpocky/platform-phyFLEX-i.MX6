@@ -1,0 +1,75 @@
+From b10fe39ba61e9db669d8ff7238da42afcd560460 Mon Sep 17 00:00:00 2001
+From: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+Date: Tue, 5 Nov 2013 12:28:35 +0300
+Subject: [PATCH 36/55] nand: Support for 4GB partitions.
+
+Signed-off-by: Dmitry Lavnikevich <d.lavnikevich@sam-solutions.net>
+---
+ commands/partition.c    |    2 +-
+ drivers/mtd/partition.c |    7 ++++---
+ include/linux/mtd/mtd.h |    4 ++--
+ 3 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/commands/partition.c b/commands/partition.c
+index f825722..ce93f00 100644
+--- a/commands/partition.c
++++ b/commands/partition.c
+@@ -59,7 +59,7 @@ static int mtd_part_do_parse_one(char *devname, const char *partstr,
+ 		size = SIZE_REMAINING;
+ 		end = (char *)partstr + 1;
+ 	} else {
+-		size = strtoul_suffix(partstr, &end, 0);
++		size = strtoull_suffix(partstr, &end, 0);
+ 	}
+ 
+ 	if (*end == '@')
+diff --git a/drivers/mtd/partition.c b/drivers/mtd/partition.c
+index 85f486d..ddac6a1 100644
+--- a/drivers/mtd/partition.c
++++ b/drivers/mtd/partition.c
+@@ -13,7 +13,7 @@ struct mtd_part {
+ 
+ #define PART(x)  ((struct mtd_part *)(x))
+ 
+-static int mtd_part_read(struct mtd_info *mtd, loff_t from, size_t len,
++static int mtd_part_read(struct mtd_info *mtd, loff_t from, uint64_t len,
+                 size_t *retlen, u_char *buf)
+ {
+ 	struct mtd_part *part = PART(mtd);
+@@ -90,8 +90,8 @@ static int mtd_part_block_markbad(struct mtd_info *mtd, loff_t ofs)
+ 	return res;
+ }
+ 
+-struct mtd_info *mtd_add_partition(struct mtd_info *mtd, off_t offset, size_t size,
+-		unsigned long flags, const char *name)
++struct mtd_info *mtd_add_partition(struct mtd_info *mtd, loff_t offset,
++		uint64_t size, unsigned long flags, const char *name)
+ {
+ 	struct mtd_part *slave;
+ 	struct mtd_info *slave_mtd;
+@@ -125,6 +125,7 @@ struct mtd_info *mtd_add_partition(struct mtd_info *mtd, off_t offset, size_t si
+ 	slave_mtd->erase = mtd_part_erase;
+ 	slave_mtd->block_isbad = mtd->block_isbad ? mtd_part_block_isbad : NULL;
+ 	slave_mtd->block_markbad = mtd->block_markbad ? mtd_part_block_markbad : NULL;
++
+ 	slave_mtd->size = size;
+ 	slave_mtd->name = strdup(name);
+ 
+diff --git a/include/linux/mtd/mtd.h b/include/linux/mtd/mtd.h
+index f951301..69fbe04 100644
+--- a/include/linux/mtd/mtd.h
++++ b/include/linux/mtd/mtd.h
+@@ -276,8 +276,8 @@ struct mtd_notifier {
+ 	struct list_head list;
+ };
+ 
+-struct mtd_info *mtd_add_partition(struct mtd_info *mtd, off_t offset, size_t size,
+-		unsigned long flags, const char *name);
++struct mtd_info *mtd_add_partition(struct mtd_info *mtd, loff_t offset,
++		uint64_t size, unsigned long flags, const char *name);
+ void mtd_del_partition(struct mtd_info *mtd);
+ 
+ extern void register_mtd_user (struct mtd_notifier *new);
+-- 
+1.7.0.4
+
